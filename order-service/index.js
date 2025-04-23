@@ -3,6 +3,7 @@ const connectDB = require("./config/db");
 require("dotenv").config();
 
 const cartRoutes = require("./routes/cartRoutes.js");
+const orderRoutes = require("./routes/orderRoutes.js");
 
 const app = express();
 app.use(express.json());
@@ -11,6 +12,7 @@ app.use(express.json());
 connectDB();
 
 app.use("/api/order-service/cart", cartRoutes);
+app.use("/api/order-service/order", orderRoutes);
 
 // Start Server
 const PORT = process.env.PORT || 5001;
