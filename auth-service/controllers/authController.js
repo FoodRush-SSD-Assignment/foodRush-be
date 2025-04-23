@@ -148,6 +148,30 @@ exports.verifyEmailCode = async (req, res) => {
   }
 };
 
+// Resend Verification Code
+exports.resendVerificationCode = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
+
+    if (user.isVerified)
+      return res.status(400).json({ message: "User already verified" });
+
+    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+    user.verificationCode = newCode;
+    user.codeExpiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+    await user.save();
+
+    await sendVerificationEmail(email, newCode);
+
+    res.status(200).json({ message: "Verification code resent" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 // Login
 exports.login = async (req, res) => {
   const { email, password } = req.body;
