@@ -2,7 +2,8 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
-
+const { connectDeliveryDB } = require("../config/db"); // import DB connection
+const DeliveryDriverModel = require("../models/Driver");
 // Utility to send email
 const sendVerificationEmail = async (to, code) => {
   const transporter = nodemailer.createTransport({
@@ -78,7 +79,7 @@ exports.merchantRegister = async (req, res) => {
     mobileno,
     dateofbirth,
     nic,
-    role, // Must be: restaurantOwner | deliveryPerson | admin
+    role,
   } = req.body;
 
   if (!["restaurantOwner", "deliveryPerson", "admin"].includes(role)) {
@@ -142,6 +143,23 @@ exports.verifyEmailCode = async (req, res) => {
     user.codeExpiresAt = null;
     await user.save();
 
+     // Only if role is deliveryPerson, create driver record
+     if (user.role === "deliveryPerson") {
+      const deliveryConn = await connectDeliveryDB();
+      const DeliveryDriver = DeliveryDriverModel(deliveryConn);
+
+      await DeliveryDriver.create({
+        userId: user._id,
+        driverName: `${user.firstname} ${user.lastname}`,
+        phone: user.mobileno,
+        email: user.email,
+        vehicle: null,
+        vehicleNumber: null,
+        currentLocation: { lat: null, lng: null },
+        status: "inactive",
+        approvalStatus: "registered",
+      });
+    }
     res.status(200).json({ message: "Email verified successfully!" });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
