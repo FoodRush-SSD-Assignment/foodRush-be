@@ -2,5 +2,11 @@
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "jsonwebtoken": "^9.0.2"
+  },
+  "scripts": {
+  "dev": "concurrently \"npm run dev --prefix auth-service\" \"npm run dev --prefix restaurant-service\" \"npm run dev --prefix order-service\" \"npm run dev --prefix delivery-service\""
+},
+  "devDependencies": {
+    "concurrently": "^9.1.2"
   }
 }
