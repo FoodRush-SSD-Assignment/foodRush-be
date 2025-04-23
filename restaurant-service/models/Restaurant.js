@@ -21,9 +21,17 @@ const RestaurantSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  itemCategories: {
-    type: [String], //['Drinks', 'Main Course', 'Desserts']
-    default: [],
+  type: {
+    type: String,
+    enum: [
+      'fast_food', //Quick bites like burgers, fries, fried chicken, and wraps.
+      'traditional',//sri lankan
+      'asian', //chinese,japanese,thai...
+      'western', //american,grilled
+      'Healthy', //salads,vegan
+      'bakery'//pastries,buns..
+    ],
+    required: true,
   },
   createdAt: {
     type: Date,
