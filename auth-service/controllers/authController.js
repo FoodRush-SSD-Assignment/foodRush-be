@@ -139,6 +139,7 @@ exports.verifyEmailCode = async (req, res) => {
       return res.status(400).json({ message: "Verification code expired" });
 
     user.isVerified = true;
+    user.isActive = true; // Activate account
     user.verificationCode = null;
     user.codeExpiresAt = null;
     await user.save();
@@ -154,6 +155,7 @@ exports.verifyEmailCode = async (req, res) => {
         phone: user.mobileno,
         email: user.email,
         vehicle: null,
+        isActive: true,
         vehicleNumber: null,
         currentLocation: { lat: null, lng: null },
         status: "inactive",
@@ -198,7 +200,12 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
     if (!user.isVerified)
-      return res.status(403).json({ message: "Verify email first" });
+      return res.status(403).json({ message: "Please verify your email first." });
+    
+    if (!user.isActive)
+      return res.status(403).json({
+        message: "This account has been deactivated. Contact support if needed.",
+      });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
@@ -250,3 +257,69 @@ exports.getUserById = async (req, res) => {
       .json({ message: "Error fetching user", error: err.message });
   }
 };
+
+// Get users by role
+exports.getUsersByRole = async (req, res) => {
+  const { role } = req.params;
+
+  // Validate role
+  const validRoles = ["admin", "customer", "restaurantOwner", "deliveryPerson"];
+  if (!validRoles.includes(role)) {
+    return res.status(400).json({ message: "Invalid role" });
+  }
+
+  try {
+    const users = await User.find({ role }).select("-password");
+    res.status(200).json(users);
+  } catch (err) {
+    res.status(500).json({
+      message: "Error fetching users by role",
+      error: err.message,
+    });
+  }
+};
+
+//deactivate account
+exports.deactivateAccount = async (req, res) => {
+  try {
+    const userId = req.user.userId; // from authenticated token
+    await User.findByIdAndUpdate(userId, { isActive: false });
+    res.status(200).json({ message: "Account deactivated successfully." });
+  } catch (err) {
+    res.status(500).json({ message: "Error deactivating account", error: err.message });
+  }
+};
+
+
+//delete user
+exports.adminDeleteUser = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    await User.findByIdAndDelete(userId);
+    res.status(200).json({ message: "User deleted permanently by admin." });
+  } catch (err) {
+    res.status(500).json({ message: "Error deleting user", error: err.message });
+  }
+};
+
+//update user details
+exports.updateUser = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // Allow only self or admin
+    if (req.user.userId !== userId && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const updated = await User.findByIdAndUpdate(userId, req.body, {
+      new: true,
+    }).select("-password");
+
+    res.status(200).json(updated);
+  } catch (err) {
+    res.status(500).json({ message: "Error updating user", error: err.message });
+  }
+};
+
+
