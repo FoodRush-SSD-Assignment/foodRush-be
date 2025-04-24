@@ -4,14 +4,14 @@ const axios = require("axios");
 // Add or update cart
 exports.addToCart = async (req, res) => {
   const customerId = req.user.userId;
-  const customerName = req.user.username;
+  const customerName = `${req.user.firstname} ${req.user.lastname || ""}`.trim();
   const { itemIds } = req.body;
 
   try {
     // Fetch all item details from the restaurant service
     const itemFetchPromises = itemIds.map(async (id) => {
       try {
-        const response = await axios.get(`http://localhost:5002/api/items/${id}`, {
+        const response = await axios.get(`http://localhost:5001/api/items/${id}`, {
           headers: { Authorization: req.headers.authorization } 
         });
         return response.data;
@@ -49,7 +49,7 @@ exports.addToCart = async (req, res) => {
       cart = new Cart({ customerId, customerName, restaurantId, restaurantName, items: [] });
     }
 
-    // 5. Add/update items
+    // update items
     itemsFromDB.forEach(itemToAdd => {
       const idx = cart.items.findIndex(i => i.name === itemToAdd.itemName);
       if (idx > -1) {

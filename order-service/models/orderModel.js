@@ -58,7 +58,8 @@ const OrderSchema = new mongoose.Schema(
             lng: { type: Number }
         },
 
-        estimatedDeliveryTime: { type: Date }
+        estimatedDeliveryTime: { type: Date },
+        isHiddenTrue: { type: Boolean, default: false }
     },
     { timestamps: true }
 );
