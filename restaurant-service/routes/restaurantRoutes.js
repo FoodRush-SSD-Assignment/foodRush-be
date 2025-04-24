@@ -11,6 +11,7 @@ router.get('/', authenticate, restaurantController.getRestaurants);
 router.get('/:id', authenticate, restaurantController.getRestaurantById);
 router.put('/:id', authenticate, authorizeRoles('admin','restaurantOwner'), restaurantController.updateRestaurant);
 router.delete('/:id', authenticate, authorizeRoles('admin'), restaurantController.deleteRestaurant);
+router.get('/category/:type', authenticate, restaurantController.getRestaurantsByCategory);
 
 // Update restaurant status - Admin only
 router.patch('/status/:id', authenticate, authorizeRoles('admin'), restaurantController.updateRestaurantStatus);

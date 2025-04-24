@@ -21,7 +21,7 @@ const RestaurantSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  type: {
+  category: {
     type: String,
     enum: [
       'fast_food', //Quick bites like burgers, fries, fried chicken, and wraps.
