@@ -1,13 +1,27 @@
 const mongoose = require("mongoose");
 
-const connectDB = async () => {
+const connectUserDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log("✅ MongoDB Connected");
+    await mongoose.connect(process.env.AUTH_DB_URI);
+    console.log("✅ Auth DB connected");
   } catch (err) {
-    console.error("❌ MongoDB connection failed:", err.message);
+    console.error("❌ Failed to connect Auth DB:", err.message);
     process.exit(1);
   }
 };
 
-module.exports = connectDB;
+const connectDeliveryDB = async () => {
+  try {
+    const conn = await mongoose.createConnection(process.env.DVLIVERY_DB_URI);
+    console.log("✅ Delivery DB connected");
+    return conn;
+  } catch (err) {
+    console.error("❌ Failed to connectDelivery DB:", err.message);
+    process.exit(1);
+  }
+};
+
+module.exports = {
+  connectDeliveryDB,
+  connectUserDB,
+};
