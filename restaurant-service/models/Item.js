@@ -18,6 +18,13 @@ const itemSchema = new mongoose.Schema({
   },
   itemCategory: {
     type: String,
+    enum: [
+      'mains', 
+      'sides',
+      'desserts', 
+      'beverages'
+    ],
+    required: true,
   },
   isAvailable: {
     type: Boolean,

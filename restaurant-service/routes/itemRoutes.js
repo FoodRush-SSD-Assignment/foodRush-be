@@ -23,4 +23,8 @@ router.delete('/:id', authenticate, authorizeRoles('restaurantOwner'), itemContr
 // Get menu
 router.get('/restaurant/:restaurantId', authenticate, itemController.getItemsByRestaurant);
 
+// Get items by itemCategory under a restaurant
+router.get('/restaurant/:restaurantId/category/:itemCategory', authenticate, itemController.getItemsByCategoryAndRestaurant);
+
+
 module.exports = router;
