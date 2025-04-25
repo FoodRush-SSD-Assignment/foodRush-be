@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const OrderSchema = new mongoose.Schema(
     {
+        orderId: { type: String, unique: true, required: true },          
         customerId: { type: String, required: true },
         customerName: { type: String },
 
@@ -65,11 +66,35 @@ const OrderSchema = new mongoose.Schema(
 );
 
 // Auto-calculate total price
-OrderSchema.pre("save", function (next) {
+OrderSchema.pre("save", async function (next) {
     this.totalPrice = this.items.reduce(
         (sum, item) => sum + item.price * item.quantity,
         0
     );
+  
+    if (!this.orderId) {
+        let isUnique = false;
+        let attempts = 0;
+    
+        while (!isUnique && attempts < 10) {
+            const randomId = Math.floor(1000 + Math.random() * 9000);
+            const newOrderId = `OR${randomId}`;
+    
+            const existingOrder = await mongoose.model("Order").findOne({ orderId: newOrderId });
+    
+            if (!existingOrder) {
+            this.orderId = newOrderId;
+            isUnique = true;
+            }
+    
+            attempts++;
+        }
+  
+        if (!isUnique) {
+            return next(new Error("Failed to generate unique orderId after multiple attempts"));
+        }
+    }
+  
     next();
 });
 
