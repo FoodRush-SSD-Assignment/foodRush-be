@@ -8,7 +8,7 @@ const { setDriverDb } = require("./controllers/deliveryDriverController");
 const { setOrderDb } = require("./controllers/orderController"); // to inject db2
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5003;
 
 // Middleware
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
@@ -29,11 +29,6 @@ connectDBs().then(({ db1, db2 }) => {
 
   app.get("/", (req, res) => {
     res.send("✅ Two MongoDB databases connected!");
-  });
-
-  app.post("/api/auth/login", (req, res) => {
-    const { email, password } = req.body;
-    res.json({ message: "Login endpoint hit", email });
   });
 
   app.listen(PORT, () => {
