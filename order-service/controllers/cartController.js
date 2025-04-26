@@ -122,12 +122,19 @@ exports.getCartItems = async (req, res) => {
       return res.status(404).json({ message: "Cart not found" });
     }
 
-    res.status(200).json({ items: cart.items, restaurantId: cart.restaurantId, restaurantName: cart.restaurantName });
+    // Build customer name
+    const customerName = `${req.user.firstname} ${req.user.lastname || ""}`.trim();
+
+    res.status(200).json({
+      ...cart.toObject(),
+      customerName,
+    });
   } catch (err) {
     console.error("Error fetching cart items:", err.message);
     res.status(500).json({ error: "Failed to fetch cart items" });
   }
 };
+
 
 
 // Delete item from cart

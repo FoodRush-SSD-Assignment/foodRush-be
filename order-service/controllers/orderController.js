@@ -11,7 +11,7 @@ const generateOrderId = () => {
 exports.placeOrder = async (req, res) => {
   const customerId = req.user.userId;
   const customerName = `${req.user.firstname} ${req.user.lastname || ""}`.trim();
-  const { deliveryAddress, paymentMethod } = req.body;
+  const { deliveryAddress, customerMobileNo, paymentMethod } = req.body;
 
   try {
     // Get the user's cart
@@ -44,6 +44,7 @@ exports.placeOrder = async (req, res) => {
       orderId,
       customerId,
       customerName,
+      customerMobileNo,
 
       restaurantId: restaurantData._id,
       restaurantName: restaurantData.restaurantName,
@@ -59,7 +60,7 @@ exports.placeOrder = async (req, res) => {
     await order.save();
 
     // Clear the cart
-    await Cart.deleteOne({ _id: cart._id });
+    // await Cart.deleteOne({ _id: cart._id });
 
     res.status(201).json({ message: "Order placed successfully", order });
   } catch (err) {

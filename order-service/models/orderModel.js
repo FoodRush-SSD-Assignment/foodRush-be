@@ -5,6 +5,7 @@ const OrderSchema = new mongoose.Schema(
         orderId: { type: String, unique: true, required: true },          
         customerId: { type: String, required: true },
         customerName: { type: String },
+        customerMobileNo: { type: String },
 
         restaurantId: { type: String, required: true },
         restaurantName: { type: String },
@@ -24,7 +25,7 @@ const OrderSchema = new mongoose.Schema(
             street: String,
             city: String,
             postalCode: String,
-            contactNumber: String,
+            province: String,
         },
 
         paymentStatus: {
@@ -36,7 +37,7 @@ const OrderSchema = new mongoose.Schema(
         paymentMethod: {
             type: String,
             enum: ["cash", "card", "mobile_wallet"],
-            default: "cash",
+            default: "card",
         },
 
         status: {
