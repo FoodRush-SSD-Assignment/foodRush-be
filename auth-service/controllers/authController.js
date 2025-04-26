@@ -144,8 +144,8 @@ exports.verifyEmailCode = async (req, res) => {
     user.codeExpiresAt = null;
     await user.save();
 
-     // Only if role is deliveryPerson, create driver record
-     if (user.role === "deliveryPerson") {
+    // Only if role is deliveryPerson, create driver record
+    if (user.role === "deliveryPerson") {
       const deliveryConn = await connectDeliveryDB();
       const DeliveryDriver = DeliveryDriverModel(deliveryConn);
 
@@ -174,8 +174,7 @@ exports.resendVerificationCode = async (req, res) => {
 
   try {
     const user = await User.findOne({ email });
-    if (!user)
-      return res.status(404).json({ message: "User not found" });
+    if (!user) return res.status(404).json({ message: "User not found" });
 
     if (user.isVerified)
       return res.status(400).json({ message: "User already verified" });
@@ -200,11 +199,14 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
     if (!user.isVerified)
-      return res.status(403).json({ message: "Please verify your email first." });
-    
+      return res
+        .status(403)
+        .json({ message: "Please verify your email first." });
+
     if (!user.isActive)
       return res.status(403).json({
-        message: "This account has been deactivated. Contact support if needed.",
+        message:
+          "This account has been deactivated. Contact support if needed.",
       });
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -286,10 +288,11 @@ exports.deactivateAccount = async (req, res) => {
     await User.findByIdAndUpdate(userId, { isActive: false });
     res.status(200).json({ message: "Account deactivated successfully." });
   } catch (err) {
-    res.status(500).json({ message: "Error deactivating account", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Error deactivating account", error: err.message });
   }
 };
-
 
 //delete user
 exports.adminDeleteUser = async (req, res) => {
@@ -298,7 +301,9 @@ exports.adminDeleteUser = async (req, res) => {
     await User.findByIdAndDelete(userId);
     res.status(200).json({ message: "User deleted permanently by admin." });
   } catch (err) {
-    res.status(500).json({ message: "Error deleting user", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Error deleting user", error: err.message });
   }
 };
 
@@ -318,8 +323,32 @@ exports.updateUser = async (req, res) => {
 
     res.status(200).json(updated);
   } catch (err) {
-    res.status(500).json({ message: "Error updating user", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Error updating user", error: err.message });
   }
 };
 
+// Verify user's current password
+exports.verifyPassword = async (req, res) => {
+  try {
+    const userId = req.user.userId; // from authenticated token
+    const { password } = req.body;
 
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Incorrect password" });
+    }
+
+    res
+      .status(200)
+      .json({ valid: true, message: "Password verified successfully" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error verifying password", error: error.message });
+  }
+};
