@@ -85,4 +85,23 @@ exports.getItemsByRestaurant = async (req, res) => {
       res.status(500).json({ error: err.message });
     }
   };
+
+// Get items by itemCategory for a specific restaurant
+exports.getItemsByCategoryAndRestaurant = async (req, res) => {
+  try {
+    const { restaurantId, itemCategory } = req.params;
+
+    const validCategories = ['mains', 'sides', 'desserts', 'beverages'];
+    if (!validCategories.includes(itemCategory)) {
+      return res.status(400).json({ error: "Invalid item category" });
+    }
+
+    const items = await Item.find({ restaurantId, itemCategory });
+
+    res.json(items);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
   

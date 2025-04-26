@@ -82,3 +82,15 @@ exports.updateRestaurantStatus = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Get restaurants by category
+exports.getRestaurantsByCategory = async (req, res) => {
+  try {
+    const { type } = req.params;
+    const restaurants = await Restaurant.find({ category: type.toLowerCase(), status: 'Approved' });
+    res.json(restaurants);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
