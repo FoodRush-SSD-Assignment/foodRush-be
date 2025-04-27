@@ -2,11 +2,16 @@ const axios = require("axios");
 const Order = require("../models/orderModel");
 const Cart = require("../models/cartModel");
 
+const generateOrderId = () => {
+  const random = Math.floor(1000 + Math.random() * 9000);
+  return `OR${random}`;
+};
+
 // Place an order
 exports.placeOrder = async (req, res) => {
   const customerId = req.user.userId;
   const customerName = `${req.user.firstname} ${req.user.lastname || ""}`.trim();
-  const { deliveryAddress, paymentMethod } = req.body;
+  const { deliveryAddress, customerMobileNo, paymentMethod } = req.body;
 
   try {
     // Get the user's cart
@@ -24,10 +29,22 @@ exports.placeOrder = async (req, res) => {
 
     const restaurantData = restaurantResponse.data;
 
+    // Generate a unique orderId
+    let orderId;
+    let exists = true;
+
+    while (exists) {
+      orderId = generateOrderId();
+      const existing = await Order.findOne({ orderId });
+      if (!existing) exists = false;
+    }
+
     // Create the order using cart + restaurant + new inputs
     const order = new Order({
+      orderId,
       customerId,
       customerName,
+      customerMobileNo,
 
       restaurantId: restaurantData._id,
       restaurantName: restaurantData.restaurantName,
@@ -43,7 +60,7 @@ exports.placeOrder = async (req, res) => {
     await order.save();
 
     // Clear the cart
-    await Cart.deleteOne({ _id: cart._id });
+    // await Cart.deleteOne({ _id: cart._id });
 
     res.status(201).json({ message: "Order placed successfully", order });
   } catch (err) {
@@ -89,7 +106,7 @@ exports.getOrderById = async (req, res) => {
   const orderId = req.params.orderId;
 
   try {
-    const order = await Order.findOne({ _id: orderId, customerId });
+    const order = await Order.findOne({ orderId, customerId });
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
@@ -122,7 +139,7 @@ exports.updateOrder = async (req, res) => {
   const { deliveryAddress, paymentMethod } = req.body;
 
   try {
-    const order = await Order.findOne({ _id: orderId, customerId });
+    const order = await Order.findOne({ orderId, customerId });
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
@@ -160,7 +177,7 @@ exports.hideOrder = async (req, res) => {
   const orderId = req.params.orderId;
 
   try {
-    const order = await Order.findOne({ _id: orderId, customerId });
+    const order = await Order.findOne({ orderId, customerId });
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
@@ -183,7 +200,7 @@ exports.unhideOrder = async (req, res) => {
   const orderId = req.params.orderId;
 
   try {
-    const order = await Order.findOne({ _id: orderId, customerId });
+    const order = await Order.findOne({ orderId, customerId });
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
@@ -206,7 +223,7 @@ exports.cancelOrderByCustomer = async (req, res) => {
   const orderId = req.params.orderId;
 
   try {
-    const order = await Order.findOne({ _id: orderId, customerId });
+    const order = await Order.findOne({ orderId, customerId });
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });

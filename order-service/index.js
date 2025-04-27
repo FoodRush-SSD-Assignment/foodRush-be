@@ -1,6 +1,7 @@
 const express = require("express");
 const connectDB = require("./config/db");
 require("dotenv").config();
+const cors = require("cors");
 
 const cors = require("cors"); // ✅ Import cors
 
@@ -9,6 +10,10 @@ const orderRoutes = require("./routes/orderRoutes.js");
 const stripeRoutes = require("./routes/stripeRoutes.js");
 
 const app = express();
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
 app.use(express.json());
 
 // ✅ Enable CORS only for frontend at http://localhost:5173
