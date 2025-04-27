@@ -137,6 +137,69 @@ const deleteDeliveryDriver = async (req, res) => {
   }
 };
 
+const updateVehicleDetails = async (req, res) => {
+  const { userId } = req.params;
+  const { vehicle, vehicleNumber, approvalStatus } = req.body;
+
+  if (!vehicle || !vehicleNumber || !approvalStatus) {
+    return res.status(400).json({ error: "vehicle, vehicleNumber, and approvalStatus are required" });
+  }
+
+  try {
+    const updatedDriver = await db1.findOneAndUpdate(
+      { userId },
+      { $set: { vehicle, vehicleNumber, approvalStatus } },
+      { new: true }
+    );
+
+    if (!updatedDriver) {
+      return res.status(404).json({ error: "Driver not found" });
+    }
+
+    res.json({
+      message: "Vehicle details updated successfully",
+      driver: updatedDriver,
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: "Failed to update vehicle details",
+      details: error.message,
+    });
+  }
+};
+
+const updateCurrentLocation = async (req, res) => {
+  const { userId } = req.params;
+  const { lat, lng } = req.body;
+
+  if (lat === undefined || lng === undefined) {
+    return res.status(400).json({ error: "latitude and longitude are required" });
+  }
+
+  try {
+    const updatedDriver = await db1.findOneAndUpdate(
+      { userId },
+      { $set: { currentLocation: { lat, lng } } },
+      { new: true }
+    );
+
+    if (!updatedDriver) {
+      return res.status(404).json({ error: "Driver not found" });
+    }
+
+    res.json({
+      message: "Current location updated successfully",
+      driver: updatedDriver,
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: "Failed to update current location",
+      details: error.message,
+    });
+  }
+};
+
+
 
 
 module.exports = {
@@ -145,7 +208,9 @@ module.exports = {
   updateDeliveryDriverByUserId,
   updateApprovalStatus,
   updateIsActiveStatus ,
-  deleteDeliveryDriver
+  deleteDeliveryDriver,
+  updateVehicleDetails,
+  updateCurrentLocation
 };
 
 
