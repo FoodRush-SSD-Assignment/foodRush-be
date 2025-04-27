@@ -2,11 +2,18 @@ const axios = require("axios");
 const Order = require("../models/orderModel");
 const Cart = require("../models/cartModel");
 
+const generateOrderId = () => {
+  const random = Math.floor(1000 + Math.random() * 9000);
+  return `OR${random}`;
+};
+
 // Place an order
 exports.placeOrder = async (req, res) => {
   const customerId = req.user.userId;
-  const customerName = `${req.user.firstname} ${req.user.lastname || ""}`.trim();
-  const { deliveryAddress, paymentMethod } = req.body;
+  const customerName = `${req.user.firstname} ${
+    req.user.lastname || ""
+  }`.trim();
+  const { deliveryAddress, customerMobileNo, paymentMethod } = req.body;
 
   try {
     // Get the user's cart
@@ -18,16 +25,29 @@ exports.placeOrder = async (req, res) => {
     // Fetch restaurant details from Restaurant Service
     const restaurantId = cart.restaurantId;
 
-    const restaurantResponse = await axios.get(`http://localhost:5001/api/restaurants/${restaurantId}`,
+    const restaurantResponse = await axios.get(
+      `http://localhost:5001/api/restaurants/${restaurantId}`,
       { headers: { Authorization: req.headers.authorization } }
     );
 
     const restaurantData = restaurantResponse.data;
 
+    // Generate a unique orderId
+    let orderId;
+    let exists = true;
+
+    while (exists) {
+      orderId = generateOrderId();
+      const existing = await Order.findOne({ orderId });
+      if (!existing) exists = false;
+    }
+
     // Create the order using cart + restaurant + new inputs
     const order = new Order({
+      orderId,
       customerId,
       customerName,
+      customerMobileNo,
 
       restaurantId: restaurantData._id,
       restaurantName: restaurantData.restaurantName,
@@ -37,13 +57,13 @@ exports.placeOrder = async (req, res) => {
       deliveryAddress,
       paymentMethod,
       paymentStatus: "pending",
-      status: "pending"
+      status: "pending",
     });
 
     await order.save();
 
     // Clear the cart
-    await Cart.deleteOne({ _id: cart._id });
+    // await Cart.deleteOne({ _id: cart._id });
 
     res.status(201).json({ message: "Order placed successfully", order });
   } catch (err) {
@@ -52,8 +72,7 @@ exports.placeOrder = async (req, res) => {
   }
 };
 
-
-// Retrieve all current and archived orders for the logged-in user 
+// Retrieve all current and archived orders for the logged-in user
 // This is for customer side order history
 exports.getAllOrders = async (req, res) => {
   const customerId = req.user.userId;
@@ -67,14 +86,15 @@ exports.getAllOrders = async (req, res) => {
   }
 };
 
-
 // Get all orders without archived orders for the current user
 // This is for customer side current orders
 exports.getCurrentOrders = async (req, res) => {
   const customerId = req.user.userId;
 
   try {
-    const orders = await Order.find({ customerId, isHiddenTrue: false }).sort({ createdAt: -1 });
+    const orders = await Order.find({ customerId, isHiddenTrue: false }).sort({
+      createdAt: -1,
+    });
     res.status(200).json(orders);
   } catch (err) {
     console.error("Error fetching orders:", err.message);
@@ -82,14 +102,13 @@ exports.getCurrentOrders = async (req, res) => {
   }
 };
 
-
 // Get a specific order by ID for the current user
 exports.getOrderById = async (req, res) => {
   const customerId = req.user.userId;
   const orderId = req.params.orderId;
 
   try {
-    const order = await Order.findOne({ _id: orderId, customerId });
+    const order = await Order.findOne({ orderId, customerId });
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
@@ -102,7 +121,6 @@ exports.getOrderById = async (req, res) => {
   }
 };
 
-
 // Get all orders in the system (admin only)
 exports.getAllOrdersForAdmin = async (req, res) => {
   try {
@@ -114,6 +132,18 @@ exports.getAllOrdersForAdmin = async (req, res) => {
   }
 };
 
+// Get all orders with status 'ready_for_pickup' (for driver)
+exports.getAllOrdersForDriver = async (req, res) => {
+  try {
+    const orders = await Order.find({ status: "ready_for_pickup" }).sort({
+      createdAt: -1,
+    });
+    res.status(200).json(orders);
+  } catch (err) {
+    console.error("Error fetching ready for pickup orders:", err.message);
+    res.status(500).json({ error: "Failed to fetch ready for pickup orders" });
+  }
+};
 
 // Customer updates order before restaurant accepts it
 exports.updateOrder = async (req, res) => {
@@ -122,14 +152,16 @@ exports.updateOrder = async (req, res) => {
   const { deliveryAddress, paymentMethod } = req.body;
 
   try {
-    const order = await Order.findOne({ _id: orderId, customerId });
+    const order = await Order.findOne({ orderId, customerId });
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
 
     if (order.status !== "pending") {
-      return res.status(400).json({ message: "Cannot update order after it is accepted or processed" });
+      return res.status(400).json({
+        message: "Cannot update order after it is accepted or processed",
+      });
     }
 
     // Allow updating only certain fields
@@ -139,10 +171,12 @@ exports.updateOrder = async (req, res) => {
 
     if (paymentMethod) {
       if (order.paymentStatus === "paid") {
-        return res.status(400).json({ message: "Cannot change payment method after payment is completed" });
+        return res.status(400).json({
+          message: "Cannot change payment method after payment is completed",
+        });
       }
       order.paymentMethod = paymentMethod;
-    }    
+    }
 
     await order.save();
 
@@ -153,14 +187,13 @@ exports.updateOrder = async (req, res) => {
   }
 };
 
-
 // Hide an order (customer side only)
 exports.hideOrder = async (req, res) => {
   const customerId = req.user.userId;
   const orderId = req.params.orderId;
 
   try {
-    const order = await Order.findOne({ _id: orderId, customerId });
+    const order = await Order.findOne({ orderId, customerId });
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
@@ -176,14 +209,13 @@ exports.hideOrder = async (req, res) => {
   }
 };
 
-
 // Unhide a previously hidden order
 exports.unhideOrder = async (req, res) => {
   const customerId = req.user.userId;
   const orderId = req.params.orderId;
 
   try {
-    const order = await Order.findOne({ _id: orderId, customerId });
+    const order = await Order.findOne({ orderId, customerId });
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
@@ -199,14 +231,13 @@ exports.unhideOrder = async (req, res) => {
   }
 };
 
-
 // Cancel an order by customer before restaurant accepts it
 exports.cancelOrderByCustomer = async (req, res) => {
   const customerId = req.user.userId;
   const orderId = req.params.orderId;
 
   try {
-    const order = await Order.findOne({ _id: orderId, customerId });
+    const order = await Order.findOne({ orderId, customerId });
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
@@ -214,7 +245,9 @@ exports.cancelOrderByCustomer = async (req, res) => {
 
     // Only allow cancel if restaurant hasn't accepted it yet
     if (order.status !== "pending" && order.status !== "confirmed") {
-      return res.status(400).json({ message: "Cannot cancel order after it is accepted or processed" });
+      return res.status(400).json({
+        message: "Cannot cancel order after it is accepted or processed",
+      });
     }
 
     order.status = "cancelled_by_customer";
