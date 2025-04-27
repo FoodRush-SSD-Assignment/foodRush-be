@@ -21,7 +21,6 @@ router.get(
 router.get(
   "/driver/all-orders",
   authenticate,
-  authorizeRoles("deliveryPerson"),
   orderController.getAllOrdersForDriver
 );
 
