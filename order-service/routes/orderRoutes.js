@@ -24,25 +24,14 @@ router.get(
   authorizeRoles("deliveryPerson"),
   orderController.getAllOrdersForDriver
 );
-router.get(
-  "/admin/all-orders",
-  authenticate,
-  authorizeRoles("admin"),
-  orderController.getAllOrdersForAdmin
-);
-router.get(
-  "/driver/all-orders",
-  authenticate,
-  authorizeRoles("deliveryPerson"),
-  orderController.getAllOrdersForDriver
-);
 
 router.put("/updateOrder/:orderId", authenticate, orderController.updateOrder);
 router.patch("/hide/:orderId", authenticate, orderController.hideOrder);
 router.patch("/unhide/:orderId", authenticate, orderController.unhideOrder);
-router.patch("/cancel/:orderId", authenticate, orderController.cancelOrderByCustomer);
-
-router.put("/status/:id", orderController.updateOrderStatus);
-
+router.patch(
+  "/cancel/:orderId",
+  authenticate,
+  orderController.cancelOrderByCustomer
+);
 
 module.exports = router;
