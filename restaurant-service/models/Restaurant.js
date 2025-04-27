@@ -9,9 +9,10 @@ const RestaurantSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  ownerName: {
+  ownerId: {
     type: String,
-    required: true,
+    ref: "User",
+    required: true 
   },
   location: {
     type: String,
@@ -44,9 +45,9 @@ const RestaurantSchema = new mongoose.Schema({
   },
 });
 
-// Pre-save middleware to generate a random _id ' eg:"RST321" '
+// Pre-save middleware to generate a random _id 'eg: "RST321"'
 RestaurantSchema.pre('save', async function (next) {
-  if (this._id) return next(); // already has ID (maybe from import or test)
+  if (this._id) return next(); // Already has an ID (maybe from import or test)
 
   const generateUniqueId = async () => {
     let generatedId = 'RST' + Math.floor(Math.random() * 900) + 100; // Random number between 100 and 999
@@ -57,7 +58,7 @@ RestaurantSchema.pre('save', async function (next) {
       // If it exists, generate a new ID recursively
       return generateUniqueId();
     }
-    
+
     return generatedId;
   };
 

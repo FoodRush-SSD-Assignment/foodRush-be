@@ -26,6 +26,10 @@ const itemSchema = new mongoose.Schema({
     ],
     required: true,
   },
+  imageUrl: {
+     type: String,
+     required: true
+  },
   isAvailable: {
     type: Boolean,
     default: true,

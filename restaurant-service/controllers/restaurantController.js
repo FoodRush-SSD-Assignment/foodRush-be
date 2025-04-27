@@ -93,4 +93,30 @@ exports.getRestaurantsByCategory = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+exports.getRestaurantsByOwnerId = async (req, res) => {
+  try {
+    const ownerId = req.params.id; // Get ownerId from URL parameter
+
+    if (!ownerId) {
+      return res.status(400).json({ error: "Owner ID is required in the URL parameter" });
+    }
+
+    console.log("Looking for restaurants with ownerId:", ownerId);
+
+    // Fetch restaurants that match the ownerId
+    const restaurants = await Restaurant.find({ ownerId: ownerId });
+
+    if (restaurants.length > 0) {
+      return res.json(restaurants);
+    } else {
+      return res.status(404).json({ message: "No restaurants found for this ownerId" });
+    }
+  } catch (err) {
+    console.error("Error in getRestaurantsByOwnerId:", err);
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+
+
 
