@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema(
     dateofbirth: { type: Date },
     nic: { type: String },
     isVerified: { type: Boolean, default: false },
+    isActive: { type: Boolean, default: false },
     verificationCode: String,
     codeExpiresAt: Date,
     role: {

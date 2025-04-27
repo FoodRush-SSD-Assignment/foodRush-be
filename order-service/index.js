@@ -5,19 +5,26 @@ const cors = require("cors");
 
 const cartRoutes = require("./routes/cartRoutes.js");
 const orderRoutes = require("./routes/orderRoutes.js");
+const stripeRoutes = require("./routes/stripeRoutes.js");
 
 const app = express();
-app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 app.use(express.json());
+
+// ✅ Enable CORS only for frontend at http://localhost:5173
+app.use(cors({ origin: "http://localhost:5173" }));
 
 // Connect to MongoDB
 connectDB();
 
 app.use("/api/order-service/cart", cartRoutes);
 app.use("/api/order-service/order", orderRoutes);
+app.use("/api/order-service/stripe", stripeRoutes);
 
 // Start Server
 const PORT = process.env.PORT || 5002;
