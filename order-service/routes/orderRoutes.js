@@ -16,5 +16,7 @@ router.patch("/hide/:orderId", authenticate, orderController.hideOrder);
 router.patch("/unhide/:orderId", authenticate, orderController.unhideOrder);
 router.patch("/cancel/:orderId", authenticate, orderController.cancelOrderByCustomer);
 
+router.put("/status/:id", orderController.updateOrderStatus);
+
 
 module.exports = router;

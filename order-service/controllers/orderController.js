@@ -91,7 +91,7 @@ exports.getCurrentOrders = async (req, res) => {
   const customerId = req.user.userId;
 
   try {
-    const orders = await Order.find({ customerId, isHiddenTrue: false }).sort({ createdAt: -1 });
+    const orders = await Order.find({ customerId, isHidden: false }).sort({ createdAt: -1 });
     res.status(200).json(orders);
   } catch (err) {
     console.error("Error fetching orders:", err.message);
@@ -183,7 +183,7 @@ exports.hideOrder = async (req, res) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    order.isHiddenTrue = true;
+    order.isHidden = true;
     await order.save();
 
     res.status(200).json({ message: "Order hidden successfully" });
@@ -206,7 +206,7 @@ exports.unhideOrder = async (req, res) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    order.isHiddenTrue = false;
+    order.isHidden = false;
     await order.save();
 
     res.status(200).json({ message: "Order unhidden successfully" });
@@ -241,5 +241,40 @@ exports.cancelOrderByCustomer = async (req, res) => {
   } catch (err) {
     console.error("Error cancelling order:", err.message);
     res.status(500).json({ error: "Failed to cancel order" });
+  }
+};
+
+
+// Update order status
+exports.updateOrderStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    // Validate the status value
+    const validStatuses = [
+      "pending", "confirmed", "accepted", "preparing", "ready_for_pickup",
+      "delivery_accepted", "delivering", "delivered",
+      "cancelled_by_customer", "cancelled_by_restaurant", "cancelled_by_delivery",
+      "paid", "refunded"
+    ];
+
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status value' });
+    }
+
+    // Find the order by ID and update the status
+    const updatedOrder = await Order.findOneAndUpdate(
+      { orderId: req.params.id },
+      { status },
+      { new: true }
+    );
+
+    if (!updatedOrder) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    res.json(updatedOrder);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
