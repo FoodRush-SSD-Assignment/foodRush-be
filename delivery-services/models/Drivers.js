@@ -15,7 +15,7 @@ const deliveryDriverSchema = new mongoose.Schema({
   },
   approvalStatus: {
     type: String,
-    enum: ["registered", "approved", "rejected"],
+    enum: ["registered", "approved","pending", "rejected"],
     default: "registered",
   },
 });
