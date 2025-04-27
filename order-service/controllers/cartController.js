@@ -59,6 +59,7 @@ exports.addToCart = async (req, res) => {
         cart.items.push({
           name: itemToAdd.itemName,
           quantity: 1,
+          description: itemToAdd.itemDescription,
           price: itemToAdd.itemPrice
         });
       }
@@ -106,5 +107,68 @@ exports.updateItemQuantity = async (req, res) => {
   } catch (err) {
     console.error("Error updating item quantity:", err.message);
     res.status(500).json({ error: "Failed to update quantity" });
+  }
+};
+
+
+// Get all items in the user's cart
+exports.getCartItems = async (req, res) => {
+  const customerId = req.user.userId;
+
+  try {
+    const cart = await Cart.findOne({ customerId });
+
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    res.status(200).json({
+      ...cart.toObject(),
+      ...cart.customerName,
+    });
+  } catch (err) {
+    console.error("Error fetching cart items:", err.message);
+    res.status(500).json({ error: "Failed to fetch cart items" });
+  }
+};
+
+
+
+// Delete item from cart
+exports.deleteItemFromCart = async (req, res) => {
+  const customerId = req.user.userId;
+  const { itemName } = req.body;
+
+  if (!itemName) {
+    return res.status(400).json({ message: "Invalid item name" });
+  }
+
+  try {
+    const cart = await Cart.findOne({ customerId });
+
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    const index = cart.items.findIndex(i => i.name === itemName);
+    if (index === -1) {
+      return res.status(404).json({ message: "Item not found in cart" });
+    }
+
+    // Remove item from cart
+    cart.items.splice(index, 1);
+
+    if (cart.items.length === 0) {
+      // If no items left, delete the cart
+      await Cart.deleteOne({ customerId });
+      return res.status(200).json({ message: "Item deleted and cart removed" });
+    } else {
+      // Otherwise, save the updated cart
+      await cart.save();
+      return res.status(200).json({ message: "Item deleted from cart", cart });
+    }
+  } catch (err) {
+    console.error("Error deleting item from cart:", err.message);
+    res.status(500).json({ error: "Failed to delete item" });
   }
 };

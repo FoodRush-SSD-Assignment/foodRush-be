@@ -8,6 +8,7 @@ const deliveryDriverSchema = new mongoose.Schema({
   vehicleNumber: { type: String, default: null },
   phone: { type: String, required: true },
   status: { type: String, enum: ["active", "inactive"], default: "inactive" },
+  isActive: { type: Boolean, default: false },
   currentLocation: {
     lat: { type: Number, default: null },
     lng: { type: Number, default: null },
