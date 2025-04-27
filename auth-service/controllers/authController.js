@@ -216,6 +216,8 @@ exports.login = async (req, res) => {
       user: {
         id: user._id,
         firstname: user.firstname,
+        email: user.email,
+
         role: user.role,
         redirectTo: user.role === "customer" ? "landing" : "dashboard",
       },
