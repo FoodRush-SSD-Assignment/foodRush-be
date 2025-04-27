@@ -34,4 +34,6 @@ router.patch(
   orderController.cancelOrderByCustomer
 );
 
+router.put("/status/:id", orderController.updateOrderStatus);
+
 module.exports = router;
