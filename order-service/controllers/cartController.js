@@ -122,12 +122,9 @@ exports.getCartItems = async (req, res) => {
       return res.status(404).json({ message: "Cart not found" });
     }
 
-    // Build customer name
-    const customerName = `${req.user.firstname} ${req.user.lastname || ""}`.trim();
-
     res.status(200).json({
       ...cart.toObject(),
-      customerName,
+      ...cart.customerName,
     });
   } catch (err) {
     console.error("Error fetching cart items:", err.message);
@@ -161,8 +158,15 @@ exports.deleteItemFromCart = async (req, res) => {
     // Remove item from cart
     cart.items.splice(index, 1);
 
-    await cart.save();
-    res.status(200).json({ message: "Item deleted from cart", cart });
+    if (cart.items.length === 0) {
+      // If no items left, delete the cart
+      await Cart.deleteOne({ customerId });
+      return res.status(200).json({ message: "Item deleted and cart removed" });
+    } else {
+      // Otherwise, save the updated cart
+      await cart.save();
+      return res.status(200).json({ message: "Item deleted from cart", cart });
+    }
   } catch (err) {
     console.error("Error deleting item from cart:", err.message);
     res.status(500).json({ error: "Failed to delete item" });
