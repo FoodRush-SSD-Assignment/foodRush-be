@@ -21,7 +21,6 @@ router.get(
 router.get(
   "/driver/all-orders",
   authenticate,
-  authorizeRoles("deliveryPerson"),
   orderController.getAllOrdersForDriver
 );
 
@@ -41,5 +40,7 @@ router.get(
   orderController.getOrdersByRestaurant
 );
 
+
+router.put("/status/:id", orderController.updateOrderStatus);
 
 module.exports = router;

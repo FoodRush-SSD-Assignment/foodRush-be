@@ -92,9 +92,7 @@ exports.getCurrentOrders = async (req, res) => {
   const customerId = req.user.userId;
 
   try {
-    const orders = await Order.find({ customerId, isHiddenTrue: false }).sort({
-      createdAt: -1,
-    });
+    const orders = await Order.find({ customerId, isHidden: false }).sort({ createdAt: -1 });
     res.status(200).json(orders);
   } catch (err) {
     console.error("Error fetching orders:", err.message);
@@ -199,7 +197,7 @@ exports.hideOrder = async (req, res) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    order.isHiddenTrue = true;
+    order.isHidden = true;
     await order.save();
 
     res.status(200).json({ message: "Order hidden successfully" });
@@ -221,7 +219,7 @@ exports.unhideOrder = async (req, res) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    order.isHiddenTrue = false;
+    order.isHidden = false;
     await order.save();
 
     res.status(200).json({ message: "Order unhidden successfully" });
