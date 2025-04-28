@@ -259,3 +259,18 @@ exports.cancelOrderByCustomer = async (req, res) => {
     res.status(500).json({ error: "Failed to cancel order" });
   }
 };
+
+//get order only for a specific restaurantId
+exports.getOrdersByRestaurant = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+
+    const orders = await Order.find({ restaurantId });
+
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+

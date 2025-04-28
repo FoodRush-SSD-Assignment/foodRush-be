@@ -2,11 +2,12 @@
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
+    "jsonwebtoken": "^9.0.2",
     "nodemailer": "^6.10.1",
-    "jsonwebtoken": "^9.0.2"
+    "stripe": "^18.0.0"
   },
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix auth-service\" \"npm run dev --prefix restaurant-service\""
+    "dev": "concurrently \"npm run dev --prefix auth-service\" \"npm run dev --prefix restaurant-service\" \"npm run dev --prefix order-service\" \"npm run dev --prefix delivery-services\" "
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

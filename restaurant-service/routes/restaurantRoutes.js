@@ -16,7 +16,7 @@ router.get('/category/:type', authenticate, restaurantController.getRestaurantsB
 // Update restaurant status - Admin only
 router.patch('/status/:id', authenticate, authorizeRoles('admin'), restaurantController.updateRestaurantStatus);
 
-// New route to fetch all restaurants by the logged-in user
+//route to fetch all restaurants by the logged-in user
 router.get('/owned/:id', authenticate, restaurantController.getRestaurantsByOwnerId);
 
 module.exports = router;

@@ -34,4 +34,12 @@ router.patch(
   orderController.cancelOrderByCustomer
 );
 
+//get order only for specific restaurant
+router.get(
+  "/restaurant/:restaurantId",
+  authenticate,
+  orderController.getOrdersByRestaurant
+);
+
+
 module.exports = router;

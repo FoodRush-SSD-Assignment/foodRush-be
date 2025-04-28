@@ -93,6 +93,7 @@ exports.getRestaurantsByCategory = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 exports.getRestaurantsByOwnerId = async (req, res) => {
   try {
     const ownerId = req.params.id; // Get ownerId from URL parameter
@@ -100,9 +101,7 @@ exports.getRestaurantsByOwnerId = async (req, res) => {
     if (!ownerId) {
       return res.status(400).json({ error: "Owner ID is required in the URL parameter" });
     }
-
-    console.log("Looking for restaurants with ownerId:", ownerId);
-
+    
     // Fetch restaurants that match the ownerId
     const restaurants = await Restaurant.find({ ownerId: ownerId });
 
