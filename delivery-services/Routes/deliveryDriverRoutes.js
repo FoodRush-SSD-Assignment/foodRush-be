@@ -10,7 +10,9 @@ const {
   updateIsActiveStatus,
   deleteDeliveryDriver,
   getAllDeliveryDrivers,
-,updateVehicleDetails,updateCurrentLocation} = require("../controllers/deliveryDriverController");
+  updateVehicleDetails,
+  updateCurrentLocation,
+} = require("../controllers/deliveryDriverController");
 
 router.get("/admin/drivers", authenticate, getAllDeliveryDrivers);
 router.get("/:userId", authenticate, getDeliveryDriverByUserId);
@@ -29,9 +31,7 @@ router.put(
   authorizeRoles("admin"),
   updateApprovalStatus
 );
-router.put('/:userId/vehicle',authenticate, updateVehicleDetails);
-router.put('/:userId/location',authenticate, updateCurrentLocation);
-
-
+router.put("/:userId/vehicle", authenticate, updateVehicleDetails);
+router.put("/:userId/location", authenticate, updateCurrentLocation);
 
 module.exports = router;
