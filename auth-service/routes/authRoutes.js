@@ -22,7 +22,7 @@ router.post("/merchant-register", merchantRegister);
 router.post("/verify-email", verifyEmailCode);
 router.post("/resend-code", resendVerificationCode);
 router.post("/login", login);
-router.get("/getuser/:id", getUserById);
+router.get("/getuser/:id", authenticate, getUserById);
 router.put("/update/:id", authenticate, updateUser);
 router.put("/deactivate", authenticate, deactivateAccount);
 router.post("/verify-password", authenticate, verifyPassword);

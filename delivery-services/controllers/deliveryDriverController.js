@@ -18,7 +18,9 @@ const getDeliveryDriverByUserId = async (req, res) => {
 
     res.json(driver);
   } catch (error) {
-    res.status(500).json({ error: "Error retrieving driver", details: error.message });
+    res
+      .status(500)
+      .json({ error: "Error retrieving driver", details: error.message });
   }
 };
 
@@ -42,7 +44,9 @@ const updateDeliveryDriverByUserId = async (req, res) => {
       driver: updatedDriver,
     });
   } catch (error) {
-    res.status(500).json({ error: "Failed to update driver", details: error.message });
+    res
+      .status(500)
+      .json({ error: "Failed to update driver", details: error.message });
   }
 };
 
@@ -88,7 +92,7 @@ const updateIsActiveStatus = async (req, res) => {
   const { userId } = req.params;
   const { isActive } = req.body;
 
-  if (typeof isActive !== 'boolean') {
+  if (typeof isActive !== "boolean") {
     return res.status(400).json({ error: "isActive must be a boolean value" });
   }
 
@@ -137,15 +141,29 @@ const deleteDeliveryDriver = async (req, res) => {
   }
 };
 
+const getAllDeliveryDrivers = async (req, res) => {
+  try {
+    const drivers = await db1.find(); // Fetch all drivers from the database
 
+    if (!drivers || drivers.length === 0) {
+      return res.status(404).json({ error: "No drivers found" });
+    }
+
+    res.json(drivers); // Return all drivers as a JSON response
+  } catch (error) {
+    res.status(500).json({
+      error: "Error retrieving drivers",
+      details: error.message,
+    });
+  }
+};
 
 module.exports = {
   setDriverDb,
   getDeliveryDriverByUserId,
   updateDeliveryDriverByUserId,
   updateApprovalStatus,
-  updateIsActiveStatus ,
-  deleteDeliveryDriver
+  updateIsActiveStatus,
+  deleteDeliveryDriver,
+  getAllDeliveryDrivers,
 };
-
-
