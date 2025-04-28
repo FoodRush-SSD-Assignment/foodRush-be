@@ -21,16 +21,11 @@ const OrderSchema = new mongoose.Schema(
 
         totalPrice: { type: Number },
 
-        deliveryAddress: {
-            street: String,
-            city: String,
-            postalCode: String,
-            province: String,
-        },
+        deliveryAddress: { type: String },
 
         paymentStatus: {
             type: String,
-            enum: ["pending", "paid", "failed"],
+            enum: ["pending", "paid", "failed", "refunded"],
             default: "pending",
         },
 
@@ -45,8 +40,7 @@ const OrderSchema = new mongoose.Schema(
             enum: [
                 "pending", "confirmed", "accepted", "preparing", "ready_for_pickup",
                 "delivery_accepted", "delivering", "delivered",
-                "cancelled_by_customer", "cancelled_by_restaurant", "cancelled_by_delivery",
-                "paid", "refunded"
+                "cancelled_by_customer", "cancelled_by_restaurant", "cancelled_by_delivery"
             ],
             default: "pending",
         },

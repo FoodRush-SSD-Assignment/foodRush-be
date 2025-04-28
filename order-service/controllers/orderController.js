@@ -249,6 +249,7 @@ exports.cancelOrderByCustomer = async (req, res) => {
     }
 
     order.status = "cancelled_by_customer";
+    order.paymentStatus = "refunded";
     await order.save();
 
     res.status(200).json({ message: "Order cancelled by customer", order });
