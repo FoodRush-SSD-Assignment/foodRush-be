@@ -21,7 +21,6 @@ router.get(
 router.get(
   "/driver/all-orders",
   authenticate,
-  authorizeRoles("deliveryPerson"),
   orderController.getAllOrdersForDriver
 );
 
@@ -33,5 +32,7 @@ router.patch(
   authenticate,
   orderController.cancelOrderByCustomer
 );
+
+router.put("/status/:id", orderController.updateOrderStatus);
 
 module.exports = router;
