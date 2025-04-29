@@ -92,7 +92,9 @@ exports.getCurrentOrders = async (req, res) => {
   const customerId = req.user.userId;
 
   try {
-    const orders = await Order.find({ customerId, isHidden: false }).sort({ createdAt: -1 });
+    const orders = await Order.find({ customerId, isHidden: false }).sort({
+      createdAt: -1,
+    });
     res.status(200).json(orders);
   } catch (err) {
     console.error("Error fetching orders:", err.message);
@@ -258,7 +260,6 @@ exports.cancelOrderByCustomer = async (req, res) => {
   }
 };
 
-
 // Update order status
 exports.updateOrderStatus = async (req, res) => {
   try {
@@ -266,14 +267,23 @@ exports.updateOrderStatus = async (req, res) => {
 
     // Validate the status value
     const validStatuses = [
-      "pending", "confirmed", "accepted", "preparing", "ready_for_pickup",
-      "delivery_accepted", "delivering", "delivered",
-      "cancelled_by_customer", "cancelled_by_restaurant", "cancelled_by_delivery",
-      "paid", "refunded"
+      "pending",
+      "confirmed",
+      "accepted",
+      "preparing",
+      "ready_for_pickup",
+      "delivery_accepted",
+      "delivering",
+      "delivered",
+      "cancelled_by_customer",
+      "cancelled_by_restaurant",
+      "cancelled_by_delivery",
+      "paid",
+      "refunded",
     ];
 
     if (!validStatuses.includes(status)) {
-      return res.status(400).json({ error: 'Invalid status value' });
+      return res.status(400).json({ error: "Invalid status value" });
     }
 
     // Find the order by ID and update the status
@@ -284,11 +294,71 @@ exports.updateOrderStatus = async (req, res) => {
     );
 
     if (!updatedOrder) {
-      return res.status(404).json({ error: 'Order not found' });
+      return res.status(404).json({ error: "Order not found" });
     }
 
     res.json(updatedOrder);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+exports.updateOrderFields = async (req, res) => {
+  const customerId = req.user.userId;
+  const orderId = req.params.orderId;
+  const updates = req.body; // whatever frontend sends
+
+  try {
+    const order = await Order.findOne({ orderId, customerId });
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Update only allowed fields
+    const allowedFields = [
+      "paymentStatus",
+      "status",
+      "paymentCompletedAt",
+      "deliveryAddress",
+      "paymentMethod",
+    ];
+
+    for (const key of Object.keys(updates)) {
+      if (allowedFields.includes(key)) {
+        order[key] = updates[key];
+      }
+    }
+
+    await order.save();
+
+    res.status(200).json({ message: "Order updated successfully", order });
+  } catch (err) {
+    console.error("Error updating order fields:", err.message);
+    res.status(500).json({ error: "Failed to update order fields." });
+  }
+};
+
+// Customer confirmed by the customer
+exports.markOrderAsConfirmed = async (req, res) => {
+  const customerId = req.user.userId;
+  const orderId = req.params.orderId;
+
+  try {
+    const order = await Order.findOne({ orderId, customerId });
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    order.status = "confirmed"; // assuming completed after payment
+    order.paymentCompletedAt = new Date(); // optional: track payment timestamp
+
+    await order.save();
+
+    res.status(200).json({ message: "Order arked as confirmed.", order });
+  } catch (err) {
+    console.error("Error updating order status:", err.message);
+    res.status(500).json({ error: "Failed to update order status." });
   }
 };
