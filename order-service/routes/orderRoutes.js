@@ -34,5 +34,6 @@ router.patch(
 );
 
 router.put("/status/:id", orderController.updateOrderStatus);
+router.patch("/:orderId/pay", authenticate, orderController.updateOrderFields);
 
 module.exports = router;
