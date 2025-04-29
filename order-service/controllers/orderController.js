@@ -13,7 +13,7 @@ exports.placeOrder = async (req, res) => {
   const customerName = `${req.user.firstname} ${
     req.user.lastname || ""
   }`.trim();
-  const { deliveryAddress, customerMobileNo, paymentMethod } = req.body;
+  const { deliveryAddress, customerMobileNo, paymentMethod, totalAmount } = req.body;
 
   try {
     // Get the user's cart
@@ -58,12 +58,13 @@ exports.placeOrder = async (req, res) => {
       paymentMethod,
       paymentStatus: "pending",
       status: "pending",
+      totalAmount,
     });
 
     await order.save();
 
     // Clear the cart
-    // await Cart.deleteOne({ _id: cart._id });
+    await Cart.deleteOne({ _id: cart._id });
 
     res.status(201).json({ message: "Order placed successfully", order });
   } catch (err) {
