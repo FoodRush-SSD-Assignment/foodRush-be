@@ -1,4 +1,5 @@
 const Restaurant = require('../models/Restaurant');
+const nodemailer = require("nodemailer");
 
 // Create a new restaurant
 exports.createRestaurant = async (req, res) => {
@@ -127,6 +128,52 @@ exports.getRestaurantsByOwnerId = async (req, res) => {
   } catch (err) {
     console.error("Error in getRestaurantsByOwnerId:", err);
     return res.status(500).json({ error: err.message });
+  }
+};
+
+// Define the sendEmail function
+const sendEmail = async ({ to, subject, text }) => {
+  const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  await transporter.sendMail({
+    from: `"FoodRush" <${process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    text,
+  });
+};
+
+// Define the controller using sendEmail
+exports.sendOrderCancellationEmail = async (req, res) => {
+  const { email, orderId, customerName, cancellationReason } = req.body;
+
+  if (!email || !orderId || !customerName || !cancellationReason) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Missing required fields" });
+  }
+
+  try {
+    await sendEmail({
+      to: email,
+      subject: `Order #${orderId} Cancelled`,
+      text: `Hello ${customerName}, your order #${orderId} has been cancelled. Reason: ${cancellationReason}`,
+    });
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Cancellation email sent" });
+  } catch (error) {
+    console.error("Email sending failed:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to send email" });
   }
 };
 

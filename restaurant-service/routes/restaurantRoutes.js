@@ -28,4 +28,7 @@ router.patch('/status/:id', authenticate, authorizeRoles('admin'), restaurantCon
 //route to fetch all restaurants by the logged-in user
 router.get('/owned/:id', authenticate, restaurantController.getRestaurantsByOwnerId);
 
+//order cancel email 
+router.post("/send-order-cancellation-email", restaurantController.sendOrderCancellationEmail);
+
 module.exports = router;
