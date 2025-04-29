@@ -19,7 +19,7 @@ exports.createCheckoutSession = async (req, res) => {
         },
         quantity: item.quantity,
       })),
-      success_url: `${process.env.CLIENT_URL}/success?session_id={CHECKOUT_SESSION_ID}`, // The success URL with the session ID
+      success_url: `${process.env.CLIENT_URL}/stripe-success?session_id={CHECKOUT_SESSION_ID}`, // The success URL with the session ID
       cancel_url: `${process.env.CLIENT_URL}/cart`, // The cancel URL if the user cancels the payment
       metadata: {
         orderId: orderId,
