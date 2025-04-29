@@ -6,6 +6,7 @@ const OrderSchema = new mongoose.Schema(
         customerId: { type: String, required: true },
         customerName: { type: String },
         customerMobileNo: { type: String },
+        customerEmail:{ type: String },
 
         restaurantId: { type: String, required: true },
         restaurantName: { type: String },
