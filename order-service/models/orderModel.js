@@ -23,10 +23,11 @@ const OrderSchema = new mongoose.Schema(
     ],
 
     totalPrice: { type: Number },
+    totalAmount: { type: Number },
 
     paymentStatus: {
       type: String,
-      enum: ["pending", "paid", "failed"],
+      enum: ["pending", "paid", "failed", "refunded"],
       default: "pending",
     },
 
@@ -77,6 +78,13 @@ OrderSchema.pre("save", async function (next) {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
+
+  // If totalAmount is not set, set it = totalPrice + fixed tax/delivery (optional)
+  if (!this.totalAmount) {
+    const taxAmount = this.items.reduce((sum, item) => sum + item.quantity * 2, 0);
+    const deliveryFee = 250;
+    this.totalAmount = this.totalPrice + taxAmount + deliveryFee;
+  }
 
   if (!this.orderId) {
     let isUnique = false;
