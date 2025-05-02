@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+require("dotenv").config();
 
 const connectUserDB = async () => {
   try {
@@ -12,7 +13,7 @@ const connectUserDB = async () => {
 
 const connectDeliveryDB = async () => {
   try {
-    const conn = await mongoose.createConnection(process.env.DVLIVERY_DB_URI);
+    const conn = await mongoose.createConnection(process.env.DELIVERY_DB_URI);
     console.log("✅ Delivery DB connected");
     return conn;
   } catch (err) {

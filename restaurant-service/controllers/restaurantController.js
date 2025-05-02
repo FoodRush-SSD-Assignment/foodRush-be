@@ -1,20 +1,35 @@
 const Restaurant = require('../models/Restaurant');
+const nodemailer = require("nodemailer");
 
 // Create a new restaurant
 exports.createRestaurant = async (req, res) => {
   try {
-    // Ensure that the _id field is not passed in the request body, as it's auto-generated
-    const { _id, ...restaurantData } = req.body; // Destructure to remove _id if present
-    // Create a new Restaurant with the provided data
-    const newRestaurant = new Restaurant(restaurantData);
-    await newRestaurant.save();
+    const { 
+      restaurantName,
+      ownerId, 
+      location, 
+      contactNumber, 
+      category 
+    } = req.body;
 
+    const imageUrl = req.file?.path;
+    
+    const newRestaurant = new Restaurant({
+      restaurantName,
+      ownerId,
+      location,
+      contactNumber,
+      category,
+      imageUrl
+    });
+    
+    await newRestaurant.save();
     res.status(201).json(newRestaurant);
   } catch (err) {
+    console.error('Error creating restaurant:', err);
     res.status(400).json({ error: err.message });
   }
 };
-
 
 // Get all restaurants
 exports.getRestaurants = async (req, res) => {
@@ -29,7 +44,7 @@ exports.getRestaurants = async (req, res) => {
 // Get one restaurant by ID
 exports.getRestaurantById = async (req, res) => {
   try {
-    const restaurant = await Restaurant.findOne({ _id: req.params.id }); // Use `findOne` since `_id` is now a string
+    const restaurant = await Restaurant.findOne({ _id: req.params.id }); 
     if (!restaurant) return res.status(404).json({ error: 'Restaurant not found' });
     res.json(restaurant);
   } catch (err) {
@@ -40,7 +55,7 @@ exports.getRestaurantById = async (req, res) => {
 // Update a restaurant
 exports.updateRestaurant = async (req, res) => {
   try {
-    const updated = await Restaurant.findOneAndUpdate({ _id: req.params.id }, req.body, { new: true }); // Use `findOneAndUpdate` to query by custom `_id`
+    const updated = await Restaurant.findOneAndUpdate({ _id: req.params.id }, req.body, { new: true }); 
     if (!updated) return res.status(404).json({ error: 'Restaurant not found' });
     res.json(updated);
   } catch (err) {
@@ -51,7 +66,7 @@ exports.updateRestaurant = async (req, res) => {
 // Delete a restaurant
 exports.deleteRestaurant = async (req, res) => {
   try {
-    const deleted = await Restaurant.findOneAndDelete({ _id: req.params.id }); // Use `findOneAndDelete` to query by custom `_id`
+    const deleted = await Restaurant.findOneAndDelete({ _id: req.params.id }); 
     if (!deleted) return res.status(404).json({ error: 'Restaurant not found' });
     res.json({ message: 'Restaurant deleted' });
   } catch (err) {
@@ -68,7 +83,7 @@ exports.updateRestaurantStatus = async (req, res) => {
     }
 
     const updatedRestaurant = await Restaurant.findOneAndUpdate(
-      { _id: req.params.id },  // Use `findOneAndUpdate` to query by custom `_id`
+      { _id: req.params.id }, 
       { status },
       { new: true }
     );
@@ -93,4 +108,75 @@ exports.getRestaurantsByCategory = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.getRestaurantsByOwnerId = async (req, res) => {
+  try {
+    const ownerId = req.params.id; // Get ownerId from URL parameter
+
+    if (!ownerId) {
+      return res.status(400).json({ error: "Owner ID is required in the URL parameter" });
+    }
+    
+    // Fetch restaurants that match the ownerId
+    const restaurants = await Restaurant.find({ ownerId: ownerId });
+
+    if (restaurants.length > 0) {
+      return res.json(restaurants);
+    } else {
+      return res.status(404).json({ message: "No restaurants found for this ownerId" });
+    }
+  } catch (err) {
+    console.error("Error in getRestaurantsByOwnerId:", err);
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+// Define the sendEmail function
+const sendEmail = async ({ to, subject, text }) => {
+  const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  await transporter.sendMail({
+    from: `"FoodRush" <${process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    text,
+  });
+};
+
+// Define the controller using sendEmail
+exports.sendOrderCancellationEmail = async (req, res) => {
+  const { email, orderId, customerName, cancellationReason } = req.body;
+
+  if (!email || !orderId || !customerName || !cancellationReason) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Missing required fields" });
+  }
+
+  try {
+    await sendEmail({
+      to: email,
+      subject: `Order #${orderId} Cancelled`,
+      text: `Hello ${customerName}, your order #${orderId} has been cancelled. Reason: ${cancellationReason}`,
+    });
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Cancellation email sent" });
+  } catch (error) {
+    console.error("Email sending failed:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to send email" });
+  }
+};
+
+
+
 

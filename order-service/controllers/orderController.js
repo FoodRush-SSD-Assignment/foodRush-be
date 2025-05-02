@@ -1,6 +1,10 @@
 const axios = require("axios");
 const Order = require("../models/orderModel");
 const Cart = require("../models/cartModel");
+const nodemailer = require('nodemailer');
+require('dotenv').config();
+const { sendOrderConfirmation } = require("../utils/emailService");
+
 
 const generateOrderId = () => {
   const random = Math.floor(1000 + Math.random() * 9000);
@@ -13,6 +17,8 @@ exports.placeOrder = async (req, res) => {
   const customerName = `${req.user.firstname} ${
     req.user.lastname || ""
   }`.trim();
+
+  const customerEmail = req.user.email;
   const { deliveryAddress, customerMobileNo, paymentMethod, totalAmount } = req.body;
 
   try {
@@ -48,6 +54,7 @@ exports.placeOrder = async (req, res) => {
       customerId,
       customerName,
       customerMobileNo,
+      customerEmail,
 
       restaurantId: restaurantData._id,
       restaurantName: restaurantData.restaurantName,
@@ -62,6 +69,15 @@ exports.placeOrder = async (req, res) => {
     });
 
     await order.save();
+
+    // Send order confirmation email
+    await sendOrderConfirmation(
+      customerEmail,
+      customerName,
+      orderId,
+      cart.items,
+      order.totalAmount
+    );
 
     // Clear the cart
     await Cart.deleteOne({ _id: cart._id });
@@ -93,9 +109,7 @@ exports.getCurrentOrders = async (req, res) => {
   const customerId = req.user.userId;
 
   try {
-    const orders = await Order.find({ customerId, isHidden: false }).sort({
-      createdAt: -1,
-    });
+    const orders = await Order.find({ customerId, isHidden: false }).sort({ createdAt: -1 });
     res.status(200).json(orders);
   } catch (err) {
     console.error("Error fetching orders:", err.message);
@@ -109,7 +123,7 @@ exports.getOrderById = async (req, res) => {
   const orderId = req.params.orderId;
 
   try {
-    const order = await Order.findOne({ orderId, customerId });
+    const order = await Order.findOne({ orderId: orderId });
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
@@ -262,12 +276,43 @@ exports.cancelOrderByCustomer = async (req, res) => {
   }
 };
 
+//get order only for a specific restaurantId- restOwner
+exports.getOrdersByRestaurant = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+
+    const orders = await Order.find({ restaurantId });
+
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
+
+// Email configuration
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS // Use environment variable in production
+  }
+});
+
+// Reusable function to send email
+const sendEmailToCustomer = async (to, subject, text) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to,
+    subject,
+    text
+  };
+  await transporter.sendMail(mailOptions);
+};
+
 // Update order status
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { status } = req.body;
 
-    // Validate the status value
     const validStatuses = [
       "pending",
       "confirmed",
@@ -288,79 +333,83 @@ exports.updateOrderStatus = async (req, res) => {
       return res.status(400).json({ error: "Invalid status value" });
     }
 
-    // Find the order by ID and update the status
-    const updatedOrder = await Order.findOneAndUpdate(
-      { orderId: req.params.id },
-      { status },
-      { new: true }
-    );
+    // Find the order first
+    const order = await Order.findOne({ orderId: req.params.id });
 
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
     if (!updatedOrder) {
       return res.status(404).json({ error: "Order not found" });
     }
 
-    res.json(updatedOrder);
+    // Update status
+    order.status = status;
+    await order.save();
+
+    // Email only for selected status changes
+    if (["delivery_accepted", "delivered", "cancelled_by_delivery"].includes(status)) {
+      let subject = '';
+      let text = '';
+
+      switch (status) {
+        case 'delivery_accepted':
+          subject = 'Order Picked Up!';
+          text = `Hi ${order.customerName}, your order #${order.orderId} has been picked up and is on its way.`;
+          break;
+        case 'delivered':
+          subject = 'Order Delivered!';
+          text = `Hi ${order.customerName}, your order #${order.orderId} has been successfully delivered. Enjoy your meal!`;
+          break;
+        case 'cancelled_by_delivery':
+          subject = 'Order Cancelled by Delivery';
+          text = `Hi ${order.customerName}, we're sorry but your order #${order.orderId} was cancelled by the delivery personnel. Please contact support if you need assistance.`;
+          break;
+      }
+
+      if (order.customerEmail) {
+        await sendEmailToCustomer(order.customerEmail, subject, text);
+      }
+    }
+
+    res.json(order);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-exports.updateOrderFields = async (req, res) => {
-  const customerId = req.user.userId;
-  const orderId = req.params.orderId;
-  const updates = req.body; // whatever frontend sends
+//update status - by restOwner
+exports.updateOrderStatus = async (req, res) => {
+  const orderId = req.params.id;
+  const { status } = req.body;
 
-  try {
-    const order = await Order.findOne({ orderId, customerId });
+  const validStatuses = [
+    "pending",
+    "confirmed",
+    "preparing",
+    "ready_for_pickup",
+    "out_for_delivery",
+    "delivered",
+    "cancelled_by_customer",
+    "cancelled_by_restaurant"
+  ];
 
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    // Update only allowed fields
-    const allowedFields = [
-      "paymentStatus",
-      "status",
-      "paymentCompletedAt",
-      "deliveryAddress",
-      "paymentMethod",
-    ];
-
-    for (const key of Object.keys(updates)) {
-      if (allowedFields.includes(key)) {
-        order[key] = updates[key];
-      }
-    }
-
-    await order.save();
-
-    res.status(200).json({ message: "Order updated successfully", order });
-  } catch (err) {
-    console.error("Error updating order fields:", err.message);
-    res.status(500).json({ error: "Failed to update order fields." });
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ message: "Invalid status value" });
   }
-};
-
-// Customer confirmed by the customer
-exports.markOrderAsConfirmed = async (req, res) => {
-  const customerId = req.user.userId;
-  const orderId = req.params.orderId;
 
   try {
-    const order = await Order.findOne({ orderId, customerId });
+    const order = await Order.findOne({ orderId });
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    order.status = "confirmed"; // assuming completed after payment
-    order.paymentCompletedAt = new Date(); // optional: track payment timestamp
-
+    order.status = status;
     await order.save();
 
-    res.status(200).json({ message: "Order arked as confirmed.", order });
+    res.status(200).json({ message: "Order status updated", order });
   } catch (err) {
     console.error("Error updating order status:", err.message);
-    res.status(500).json({ error: "Failed to update order status." });
+    res.status(500).json({ error: "Failed to update order status" });
   }
 };
