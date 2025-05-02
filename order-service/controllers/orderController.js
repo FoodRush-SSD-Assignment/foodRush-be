@@ -261,42 +261,41 @@ exports.cancelOrderByCustomer = async (req, res) => {
   }
 };
 
-// Update order status
 exports.updateOrderStatus = async (req, res) => {
   const orderId = req.params.id;
   const { status } = req.body;
 
-    // Validate the status value
-    const validStatuses = [
-      "pending",
-      "confirmed",
-      "accepted",
-      "preparing",
-      "ready_for_pickup",
-      "delivery_accepted",
-      "delivering",
-      "delivered",
-      "cancelled_by_customer",
-      "cancelled_by_restaurant",
-      "cancelled_by_delivery",
-      "paid",
-      "refunded",
-    ];
+  const validStatuses = [
+    "pending",
+    "confirmed",
+    "accepted",
+    "preparing",
+    "ready_for_pickup",
+    "delivery_accepted",
+    "delivering",
+    "delivered",
+    "cancelled_by_customer",
+    "cancelled_by_restaurant",
+    "cancelled_by_delivery",
+    "paid",
+    "refunded",
+  ];
 
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ error: "Invalid status value" });
-    }
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ error: "Invalid status value" });
+  }
 
   try {
     const order = await Order.findOne({ orderId });
 
-    if (!updatedOrder) {
-      return res.status(404).json({ error: "Order not found" });
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    res.json(updatedOrder);
+    order.status = status;
+    await order.save();
+
+    res.json(order);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
