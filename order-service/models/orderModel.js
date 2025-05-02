@@ -1,11 +1,13 @@
 const mongoose = require("mongoose");
 
 const OrderSchema = new mongoose.Schema(
+
   {
     orderId: { type: String, unique: true, required: true },
     customerId: { type: String, required: true },
     customerName: { type: String },
     customerMobileNo: { type: String },
+        customerEmail:{ type: String },
 
     restaurantId: { type: String, required: true },
     restaurantName: { type: String },
