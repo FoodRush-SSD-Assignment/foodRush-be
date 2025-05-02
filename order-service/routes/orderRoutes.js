@@ -33,16 +33,6 @@ router.patch(
   orderController.cancelOrderByCustomer
 );
 
-//get order only for specific restaurant
-router.get(
-  "/restaurant/:restaurantId",
-  authenticate,
-  orderController.getOrdersByRestaurant
-);
-
-//restOwner change the order status 
-router.put("/status/:id", authenticate, orderController.updateOrderStatus);
-//order cancel email 
-router.post("/send-order-cancellation-email", orderController.sendOrderCancellationEmail);
+router.put("/status/:id", orderController.updateOrderStatus);
 
 module.exports = router;

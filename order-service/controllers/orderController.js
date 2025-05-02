@@ -93,7 +93,9 @@ exports.getCurrentOrders = async (req, res) => {
   const customerId = req.user.userId;
 
   try {
-    const orders = await Order.find({ customerId, isHidden: false }).sort({ createdAt: -1 });
+    const orders = await Order.find({ customerId, isHidden: false }).sort({
+      createdAt: -1,
+    });
     res.status(200).json(orders);
   } catch (err) {
     console.error("Error fetching orders:", err.message);
@@ -259,100 +261,103 @@ exports.cancelOrderByCustomer = async (req, res) => {
   }
 };
 
-//get order only for a specific restaurantId- restOwner
-exports.getOrdersByRestaurant = async (req, res) => {
-  try {
-    const { restaurantId } = req.params;
-
-    const orders = await Order.find({ restaurantId });
-
-    res.status(200).json(orders);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server Error" });
-  }
-};
-
-//update status - by restOwner
+// Update order status
 exports.updateOrderStatus = async (req, res) => {
   const orderId = req.params.id;
   const { status } = req.body;
 
-  const validStatuses = [
-    "pending",
-    "confirmed",
-    "preparing",
-    "ready_for_pickup",
-    "out_for_delivery",
-    "delivered",
-    "cancelled_by_customer",
-    "cancelled_by_restaurant"
-  ];
+    // Validate the status value
+    const validStatuses = [
+      "pending",
+      "confirmed",
+      "accepted",
+      "preparing",
+      "ready_for_pickup",
+      "delivery_accepted",
+      "delivering",
+      "delivered",
+      "cancelled_by_customer",
+      "cancelled_by_restaurant",
+      "cancelled_by_delivery",
+      "paid",
+      "refunded",
+    ];
 
-  if (!validStatuses.includes(status)) {
-    return res.status(400).json({ message: "Invalid status value" });
-  }
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: "Invalid status value" });
+    }
 
   try {
     const order = await Order.findOne({ orderId });
+
+    if (!updatedOrder) {
+      return res.status(404).json({ error: "Order not found" });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    res.json(updatedOrder);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.updateOrderFields = async (req, res) => {
+  const customerId = req.user.userId;
+  const orderId = req.params.orderId;
+  const updates = req.body; // whatever frontend sends
+
+  try {
+    const order = await Order.findOne({ orderId, customerId });
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    order.status = status;
+    // Update only allowed fields
+    const allowedFields = [
+      "paymentStatus",
+      "status",
+      "paymentCompletedAt",
+      "deliveryAddress",
+      "paymentMethod",
+    ];
+
+    for (const key of Object.keys(updates)) {
+      if (allowedFields.includes(key)) {
+        order[key] = updates[key];
+      }
+    }
+
     await order.save();
 
-    res.status(200).json({ message: "Order status updated", order });
+    res.status(200).json({ message: "Order updated successfully", order });
   } catch (err) {
-    console.error("Error updating order status:", err.message);
-    res.status(500).json({ error: "Failed to update order status" });
+    console.error("Error updating order fields:", err.message);
+    res.status(500).json({ error: "Failed to update order fields." });
   }
 };
 
-
-// Define the sendEmail function
-const sendEmail = async ({ to, subject, text }) => {
-  const transporter = nodemailer.createTransport({
-    service: 'Gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-
-  await transporter.sendMail({
-    from: `"FoodRush" <${process.env.EMAIL_USER}>`,
-    to,
-    subject,
-    text,
-  });
-};
-
-// Define the controller using sendEmail
-exports.sendOrderCancellationEmail = async (req, res) => {
-  const { email, orderId, customerName, cancellationReason } = req.body;
-
-  if (!email || !orderId || !customerName || !cancellationReason) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Missing required fields" });
-  }
+// Customer confirmed by the customer
+exports.markOrderAsConfirmed = async (req, res) => {
+  const customerId = req.user.userId;
+  const orderId = req.params.orderId;
 
   try {
-    await sendEmail({
-      to: email,
-      subject: `Order #${orderId} Cancelled`,
-      text: `Hello ${customerName}, your order #${orderId} has been cancelled. Reason: ${cancellationReason}`,
-    });
+    const order = await Order.findOne({ orderId, customerId });
 
-    return res
-      .status(200)
-      .json({ success: true, message: "Cancellation email sent" });
-  } catch (error) {
-    console.error("Email sending failed:", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Failed to send email" });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    order.status = "confirmed"; // assuming completed after payment
+    order.paymentCompletedAt = new Date(); // optional: track payment timestamp
+
+    await order.save();
+
+    res.status(200).json({ message: "Order arked as confirmed.", order });
+  } catch (err) {
+    console.error("Error updating order status:", err.message);
+    res.status(500).json({ error: "Failed to update order status." });
   }
 };
