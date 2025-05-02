@@ -40,7 +40,9 @@ router.get(
   orderController.getOrdersByRestaurant
 );
 
-
-router.put("/status/:id", orderController.updateOrderStatus);
+//restOwner change the order status 
+router.put("/status/:id", authenticate, orderController.updateOrderStatus);
+//order cancel email 
+router.post("/send-order-cancellation-email", orderController.sendOrderCancellationEmail);
 
 module.exports = router;

@@ -3,18 +3,32 @@ const Restaurant = require('../models/Restaurant');
 // Create a new restaurant
 exports.createRestaurant = async (req, res) => {
   try {
-    // Ensure that the _id field is not passed in the request body, as it's auto-generated
-    const { _id, ...restaurantData } = req.body; // Destructure to remove _id if present
-    // Create a new Restaurant with the provided data
-    const newRestaurant = new Restaurant(restaurantData);
-    await newRestaurant.save();
+    const { 
+      restaurantName,
+      ownerId, 
+      location, 
+      contactNumber, 
+      category 
+    } = req.body;
 
+    const imageUrl = req.file?.path;
+    
+    const newRestaurant = new Restaurant({
+      restaurantName,
+      ownerId,
+      location,
+      contactNumber,
+      category,
+      imageUrl
+    });
+    
+    await newRestaurant.save();
     res.status(201).json(newRestaurant);
   } catch (err) {
+    console.error('Error creating restaurant:', err);
     res.status(400).json({ error: err.message });
   }
 };
-
 
 // Get all restaurants
 exports.getRestaurants = async (req, res) => {
@@ -29,7 +43,7 @@ exports.getRestaurants = async (req, res) => {
 // Get one restaurant by ID
 exports.getRestaurantById = async (req, res) => {
   try {
-    const restaurant = await Restaurant.findOne({ _id: req.params.id }); // Use `findOne` since `_id` is now a string
+    const restaurant = await Restaurant.findOne({ _id: req.params.id }); 
     if (!restaurant) return res.status(404).json({ error: 'Restaurant not found' });
     res.json(restaurant);
   } catch (err) {
@@ -40,7 +54,7 @@ exports.getRestaurantById = async (req, res) => {
 // Update a restaurant
 exports.updateRestaurant = async (req, res) => {
   try {
-    const updated = await Restaurant.findOneAndUpdate({ _id: req.params.id }, req.body, { new: true }); // Use `findOneAndUpdate` to query by custom `_id`
+    const updated = await Restaurant.findOneAndUpdate({ _id: req.params.id }, req.body, { new: true }); 
     if (!updated) return res.status(404).json({ error: 'Restaurant not found' });
     res.json(updated);
   } catch (err) {
@@ -51,7 +65,7 @@ exports.updateRestaurant = async (req, res) => {
 // Delete a restaurant
 exports.deleteRestaurant = async (req, res) => {
   try {
-    const deleted = await Restaurant.findOneAndDelete({ _id: req.params.id }); // Use `findOneAndDelete` to query by custom `_id`
+    const deleted = await Restaurant.findOneAndDelete({ _id: req.params.id }); 
     if (!deleted) return res.status(404).json({ error: 'Restaurant not found' });
     res.json({ message: 'Restaurant deleted' });
   } catch (err) {
@@ -68,7 +82,7 @@ exports.updateRestaurantStatus = async (req, res) => {
     }
 
     const updatedRestaurant = await Restaurant.findOneAndUpdate(
-      { _id: req.params.id },  // Use `findOneAndUpdate` to query by custom `_id`
+      { _id: req.params.id }, 
       { status },
       { new: true }
     );
