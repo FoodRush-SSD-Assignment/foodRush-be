@@ -15,6 +15,8 @@ exports.addItem = async (req, res) => {
       if (!restaurantId || !restaurantName) {
         return res.status(400).json({ error: "Restaurant ID and name are required" });
       }
+
+      const imageUrl = req.file?.path;
   
       const newItem = new Item({
         itemName,
@@ -23,6 +25,7 @@ exports.addItem = async (req, res) => {
         itemCategory,
         restaurantId,
         restaurantName,
+        imageUrl
       });
   
       await newItem.save();
