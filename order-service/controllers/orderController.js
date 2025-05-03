@@ -1,10 +1,9 @@
 const axios = require("axios");
 const Order = require("../models/orderModel");
 const Cart = require("../models/cartModel");
-const nodemailer = require('nodemailer');
-require('dotenv').config();
+const nodemailer = require("nodemailer");
+require("dotenv").config();
 const { sendOrderConfirmation } = require("../utils/emailService");
-
 
 const generateOrderId = () => {
   const random = Math.floor(1000 + Math.random() * 9000);
@@ -19,7 +18,8 @@ exports.placeOrder = async (req, res) => {
   }`.trim();
 
   const customerEmail = req.user.email;
-  const { deliveryAddress, customerMobileNo, paymentMethod, totalAmount } = req.body;
+  const { deliveryAddress, customerMobileNo, paymentMethod, totalAmount } =
+    req.body;
 
   try {
     // Get the user's cart
@@ -109,7 +109,9 @@ exports.getCurrentOrders = async (req, res) => {
   const customerId = req.user.userId;
 
   try {
-    const orders = await Order.find({ customerId, isHidden: false }).sort({ createdAt: -1 });
+    const orders = await Order.find({ customerId, isHidden: false }).sort({
+      createdAt: -1,
+    });
     res.status(200).json(orders);
   } catch (err) {
     console.error("Error fetching orders:", err.message);
@@ -280,21 +282,62 @@ exports.cancelOrderByCustomer = async (req, res) => {
 exports.getOrdersByRestaurant = async (req, res) => {
   try {
     const { restaurantId } = req.params;
-
     const orders = await Order.find({ restaurantId });
-
     res.status(200).json(orders);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server Error" });
 
+    // Email configuration
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    // Reusable function to send email
+    const sendEmailToCustomer = async (to, subject, text) => {
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to,
+        subject,
+        text,
+      };
+      await transporter.sendMail(mailOptions);
+    };
+
+    // Update order status
+    exports.updateOrderStatus = async (req, res) => {
+      try {
+        // Function logic...
+      } catch (err) {
+        res.status(500).json({ error: err.message });
+      }
+    };
+  }
+};
+
+// Change it to this:
+exports.getOrdersByRestaurant = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+    const orders = await Order.find({ restaurantId });
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
 // Email configuration
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: "gmail",
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS // Use environment variable in production
-  }
+    pass: process.env.EMAIL_PASS, // Use environment variable in production
+  },
 });
 
 // Reusable function to send email
@@ -303,12 +346,12 @@ const sendEmailToCustomer = async (to, subject, text) => {
     from: process.env.EMAIL_USER,
     to,
     subject,
-    text
+    text,
   };
   await transporter.sendMail(mailOptions);
 };
 
-// Update order status
+// Update order status - correctly defined as a separate export
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { status } = req.body;
@@ -333,12 +376,10 @@ exports.updateOrderStatus = async (req, res) => {
       return res.status(400).json({ error: "Invalid status value" });
     }
 
-    // Find the order first
+    // Find the order
     const order = await Order.findOne({ orderId: req.params.id });
 
     if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
-    if (!updatedOrder) {
       return res.status(404).json({ error: "Order not found" });
     }
 
@@ -346,22 +387,26 @@ exports.updateOrderStatus = async (req, res) => {
     order.status = status;
     await order.save();
 
-    // Email only for selected status changes
-    if (["delivery_accepted", "delivered", "cancelled_by_delivery"].includes(status)) {
-      let subject = '';
-      let text = '';
+    // Email notifications
+    if (
+      ["delivery_accepted", "delivered", "cancelled_by_delivery"].includes(
+        status
+      )
+    ) {
+      let subject = "";
+      let text = "";
 
       switch (status) {
-        case 'delivery_accepted':
-          subject = 'Order Picked Up!';
+        case "delivery_accepted":
+          subject = "Order Picked Up!";
           text = `Hi ${order.customerName}, your order #${order.orderId} has been picked up and is on its way.`;
           break;
-        case 'delivered':
-          subject = 'Order Delivered!';
+        case "delivered":
+          subject = "Order Delivered!";
           text = `Hi ${order.customerName}, your order #${order.orderId} has been successfully delivered. Enjoy your meal!`;
           break;
-        case 'cancelled_by_delivery':
-          subject = 'Order Cancelled by Delivery';
+        case "cancelled_by_delivery":
+          subject = "Order Cancelled by Delivery";
           text = `Hi ${order.customerName}, we're sorry but your order #${order.orderId} was cancelled by the delivery personnel. Please contact support if you need assistance.`;
           break;
       }
@@ -377,25 +422,16 @@ exports.updateOrderStatus = async (req, res) => {
   }
 };
 
-//update status - by restOwner
-exports.updateOrderStatus = async (req, res) => {
-  const orderId = req.params.id;
-  const { status } = req.body;
-
-  const validStatuses = [
-    "pending",
-    "confirmed",
-    "preparing",
-    "ready_for_pickup",
-    "out_for_delivery",
-    "delivered",
-    "cancelled_by_customer",
-    "cancelled_by_restaurant"
-  ];
-
-  if (!validStatuses.includes(status)) {
-    return res.status(400).json({ message: "Invalid status value" });
-  }
+// For internal use or admin-level updates
+exports.updateOrderAfterConfirmed = async (req, res) => {
+  const orderId = req.params.orderId;
+  const {
+    status,
+    paymentStatus,
+    paymentCompletedAt,
+    deliveryAddress,
+    paymentMethod,
+  } = req.body;
 
   try {
     const order = await Order.findOne({ orderId });
@@ -404,12 +440,18 @@ exports.updateOrderStatus = async (req, res) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    order.status = status;
+    // Update order fields if present in the request
+    if (status) order.status = status;
+    if (paymentStatus) order.paymentStatus = paymentStatus;
+    if (paymentCompletedAt) order.paymentCompletedAt = paymentCompletedAt;
+    if (deliveryAddress) order.deliveryAddress = deliveryAddress;
+    if (paymentMethod) order.paymentMethod = paymentMethod;
+
     await order.save();
 
-    res.status(200).json({ message: "Order status updated", order });
+    res.status(200).json({ message: "Order updated by admin", order });
   } catch (err) {
-    console.error("Error updating order status:", err.message);
-    res.status(500).json({ error: "Failed to update order status" });
+    console.error("Admin order update error:", err.message);
+    res.status(500).json({ error: "Failed to update order" });
   }
 };
