@@ -25,6 +25,11 @@ router.get(
 );
 
 router.put("/updateOrder/:orderId", authenticate, orderController.updateOrder);
+router.put(
+  "/updateOrderAfterCheckout/:orderId",
+  authenticate,
+  orderController.updateOrderAfterConfirmed
+);
 router.patch("/hide/:orderId", authenticate, orderController.hideOrder);
 router.patch("/unhide/:orderId", authenticate, orderController.unhideOrder);
 router.patch(
@@ -40,8 +45,7 @@ router.get(
   orderController.getOrdersByRestaurant
 );
 
-//restOwner change the order status 
+//restOwner change the order status
 router.put("/status/:id", authenticate, orderController.updateOrderStatus);
-
 
 module.exports = router;

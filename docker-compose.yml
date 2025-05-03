@@ -1,0 +1,47 @@
+services:
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./auth-service/.env
+    depends_on:
+      - mongo
+
+  restaurant-service:
+    build: ./restaurant-service
+    ports:
+      - "5001:5001"
+    env_file:
+      - ./restaurant-service/.env
+    depends_on:
+      - mongo
+
+  order-service:
+    build: ./order-service
+    ports:
+      - "5002:5002"
+    env_file:
+      - ./order-service/.env
+    depends_on:
+      - mongo
+
+  delivery-services:
+    build: ./delivery-services
+    ports:
+      - "5003:5003"
+    env_file:
+      - ./delivery-services/.env
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
