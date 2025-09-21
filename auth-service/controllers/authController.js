@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const { connectDeliveryDB } = require("../config/db"); // import DB connection
 const DeliveryDriverModel = require("../models/Driver");
+const mongoose = require("mongoose");
 // Utility to send email
 const sendVerificationEmail = async (to, code) => {
   const transporter = nodemailer.createTransport({
@@ -21,6 +22,11 @@ const sendVerificationEmail = async (to, code) => {
     html: `<p>Your verification code is <strong>${code}</strong></p>`,
   });
 };
+
+// Utility: validate MongoDB ObjectId
+function isValidObjectId(id) {
+  return mongoose.Types.ObjectId.isValid(id);
+}
 
 // Customer Register
 exports.customerRegister = async (req, res) => {
@@ -240,7 +246,7 @@ exports.login = async (req, res) => {
 //get all users
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select("-password"); // exclude password
+    const users = await User.find().select("-password");
     res.status(200).json(users);
   } catch (err) {
     res
@@ -252,6 +258,10 @@ exports.getAllUsers = async (req, res) => {
 //get users by id
 exports.getUserById = async (req, res) => {
   try {
+    const userId = req.params.id;
+    if (req.user.role !== "admin" && req.user.userId !== userId) {
+      return res.status(403).json({ message: "Access denied" });
+    }
     const user = await User.findById(req.params.id).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -301,6 +311,15 @@ exports.deactivateAccount = async (req, res) => {
 exports.adminDeleteUser = async (req, res) => {
   try {
     const userId = req.params.id;
+    if (!isValidObjectId(userId)) {
+      return res.status(400).json({ error: "Invalid userId" });
+    }
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    if (req.user.userId === userId) {
+      return res.status(400).json({ message: "Admins cannot delete themselves" });
+    }
     await User.findByIdAndDelete(userId);
     res.status(200).json({ message: "User deleted permanently by admin." });
   } catch (err) {
@@ -314,13 +333,36 @@ exports.adminDeleteUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const userId = req.params.id;
+    if (!isValidObjectId(userId)) {
+      return res.status(400).json({ error: "Invalid userId" });
+    }
 
     // Allow only self or admin
-    if (req.user.userId !== userId && req.user.role !== "admin") {
+    const isSelf = req.user.userId === userId;
+    const isAdmin = req.user.role === "admin";
+
+    if (!isSelf && !isAdmin) {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    const updated = await User.findByIdAndUpdate(userId, req.body, {
+    // Whitelist of fields
+    let allowedFields = ["firstname", "lastname", "email", "address", "mobileno", "dateofbirth", "nic"];
+
+    // If admin, they can also change role
+    if (isAdmin) {
+      allowedFields.push("role");
+    }
+
+    if (isAdmin && req.user.userId === userId && req.body.role) {
+      return res.status(400).json({ message: "Admins cannot change their own role" });
+    }
+
+    const updates = {};
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) updates[field] = req.body[field];
+    });
+
+    const updated = await User.findByIdAndUpdate(userId, updates, {
       new: true,
     }).select("-password");
 
