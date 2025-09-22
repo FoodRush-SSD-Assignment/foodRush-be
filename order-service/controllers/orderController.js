@@ -125,7 +125,7 @@ exports.getOrderById = async (req, res) => {
   const orderId = req.params.orderId;
 
   try {
-    const order = await Order.findOne({ orderId: orderId });
+    const order = await Order.findOne({ orderId: orderId, customerId: customerId });
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });

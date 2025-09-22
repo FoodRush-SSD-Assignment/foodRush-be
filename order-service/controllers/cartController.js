@@ -122,10 +122,7 @@ exports.getCartItems = async (req, res) => {
       return res.status(404).json({ message: "Cart not found" });
     }
 
-    res.status(200).json({
-      ...cart.toObject(),
-      ...cart.customerName,
-    });
+    res.status(200).json(cart);
   } catch (err) {
     console.error("Error fetching cart items:", err.message);
     res.status(500).json({ error: "Failed to fetch cart items" });

@@ -21,6 +21,7 @@ router.get(
 router.get(
   "/driver/all-orders",
   authenticate,
+  authorizeRoles("deliveryPerson"),
   orderController.getAllOrdersForDriver
 );
 
@@ -42,6 +43,7 @@ router.patch(
 router.get(
   "/restaurant/:restaurantId",
   authenticate,
+  authorizeRoles("restaurantOwner", "admin"),
   orderController.getOrdersByRestaurant
 );
 
