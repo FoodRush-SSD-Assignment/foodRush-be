@@ -48,6 +48,6 @@ router.get(
 );
 
 //restOwner change the order status
-router.put("/status/:id", authenticate, orderController.updateOrderStatus);
+router.put("/status/:id", authenticate, authorizeRoles("restaurantOwner"), orderController.updateOrderStatus);
 
 module.exports = router;

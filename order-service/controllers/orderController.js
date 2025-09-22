@@ -282,47 +282,9 @@ exports.cancelOrderByCustomer = async (req, res) => {
 exports.getOrdersByRestaurant = async (req, res) => {
   try {
     const { restaurantId } = req.params;
-    const orders = await Order.find({ restaurantId });
-    res.status(200).json(orders);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server Error" });
-
-    // Email configuration
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    // Reusable function to send email
-    const sendEmailToCustomer = async (to, subject, text) => {
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to,
-        subject,
-        text,
-      };
-      await transporter.sendMail(mailOptions);
-    };
-
-    // Update order status
-    exports.updateOrderStatus = async (req, res) => {
-      try {
-        // Function logic...
-      } catch (err) {
-        res.status(500).json({ error: err.message });
-      }
-    };
-  }
-};
-
-// Change it to this:
-exports.getOrdersByRestaurant = async (req, res) => {
-  try {
-    const { restaurantId } = req.params;
+    if (req.user.role === "restaurantOwner" && req.user.restaurantId !== restaurantId) {
+      return res.status(403).json({ message: "Access denied" });
+    }
     const orders = await Order.find({ restaurantId });
     res.status(200).json(orders);
   } catch (error) {
@@ -381,6 +343,10 @@ exports.updateOrderStatus = async (req, res) => {
 
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
+    }
+
+    if (req.user.role === "restaurantOwner" && order.restaurantId.toString() !== req.user.restaurantId) {
+      return res.status(403).json({ message: "Access denied" });
     }
 
     // Update status
