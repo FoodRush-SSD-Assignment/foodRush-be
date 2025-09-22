@@ -31,7 +31,11 @@ exports.createRestaurant = async (req, res) => {
 // Get all restaurants
 exports.getRestaurants = async (req, res) => {
   try {
-    const restaurants = await Restaurant.find();
+    let query = {};
+    if (req.user.role === "customer") {
+      query.status = "Approved";
+    }
+    const restaurants = await Restaurant.find(query);
     res.json(restaurants);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -42,6 +46,9 @@ exports.getRestaurants = async (req, res) => {
 exports.getRestaurantById = async (req, res) => {
   try {
     const restaurant = await Restaurant.findOne({ _id: req.params.id });
+    if (req.user.role === "customer" && restaurant.status !== "Approved") {
+      return res.status(403).json({ error: "You cannot access this restaurant" });
+    }
     if (!restaurant)
       return res.status(404).json({ error: "Restaurant not found" });
     res.json(restaurant);
@@ -53,13 +60,19 @@ exports.getRestaurantById = async (req, res) => {
 // Update a restaurant
 exports.updateRestaurant = async (req, res) => {
   try {
+    const restaurant = await Restaurant.findById(req.params.id);
+    if (!restaurant) return res.status(404).json({ error: "Restaurant not found" });
+
+    if (req.user.role === "restaurantOwner" && restaurant.ownerId.toString() !== req.user.userId) {
+      return res.status(403).json({ error: "You can only update your own restaurant" });
+    }
     const updated = await Restaurant.findOneAndUpdate(
       { _id: req.params.id },
       req.body,
       { new: true }
     );
     if (!updated)
-      return res.status(404).json({ error: "Restaurant not found" });
+      return res.status(404).json({ error: "Restaurant did not updated" });
     res.json(updated);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -82,7 +95,7 @@ exports.deleteRestaurant = async (req, res) => {
 exports.updateRestaurantStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    if (!["Pending", "Approved", "suspended"].includes(status)) {
+    if (!["Pending", "Approved", "Suspended"].includes(status)) {
       return res.status(400).json({ error: "Invalid status value" });
     }
 
@@ -126,8 +139,13 @@ exports.getRestaurantsByOwnerId = async (req, res) => {
         .json({ error: "Owner ID is required in the URL parameter" });
     }
 
+    // If user is restaurantOwner, they can only fetch their own restaurants
+    if (req.user.role === "restaurantOwner" && req.user.userId !== ownerId) {
+      return res.status(403).json({ error: "You can only view your own restaurants" });
+    }
+
     // Fetch restaurants that match the ownerId
-    const restaurants = await Restaurant.find({ ownerId: ownerId });
+    const restaurants = await Restaurant.find({ ownerId });
 
     if (restaurants.length > 0) {
       return res.json(restaurants);

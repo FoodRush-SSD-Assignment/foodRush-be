@@ -44,7 +44,7 @@ const RestaurantSchema = new mongoose.Schema({
   },
   status: { //admin should set this status
     type: String,
-    enum: ['Pending', 'Approved', 'suspended'],
+    enum: ['Pending', 'Approved', 'Suspended'],
     default: 'Pending',
   },
 });

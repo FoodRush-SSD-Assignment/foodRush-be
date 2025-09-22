@@ -17,7 +17,6 @@ const upload = multer({ storage });
 // Protect all routes
 router.post('/', authenticate, authorizeRoles('admin', 'restaurantOwner'), upload.single('image'), restaurantController.createRestaurant);
 router.get('/', authenticate, restaurantController.getRestaurants);
-router.get('/:id', authenticate, restaurantController.getRestaurantById);
 router.put('/:id', authenticate, authorizeRoles('admin','restaurantOwner'), restaurantController.updateRestaurant);
 router.delete('/:id', authenticate, authorizeRoles('admin'), restaurantController.deleteRestaurant);
 router.get('/category/:type', authenticate, restaurantController.getRestaurantsByCategory);
@@ -28,7 +27,9 @@ router.patch('/status/:id', authenticate, authorizeRoles('admin'), restaurantCon
 //route to fetch all restaurants by the logged-in user
 router.get('/owned/:id', authenticate, restaurantController.getRestaurantsByOwnerId);
 
+router.get('/:id', authenticate, restaurantController.getRestaurantById);
+
 //order cancel email 
-router.post("/send-order-cancellation-email", restaurantController.sendOrderCancellationEmail);
+router.post("/send-order-cancellation-email", authenticate, authorizeRoles("admin", "restaurantOwner"),restaurantController.sendOrderCancellationEmail);
 
 module.exports = router;
