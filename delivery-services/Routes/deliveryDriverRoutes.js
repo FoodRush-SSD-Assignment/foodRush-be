@@ -14,11 +14,11 @@ const {
   updateCurrentLocation,
 } = require("../controllers/deliveryDriverController");
 
-router.get("/admin/drivers", authenticate, getAllDeliveryDrivers);
+router.get("/admin/drivers", authenticate, authorizeRoles("admin"), getAllDeliveryDrivers);
 router.get("/:userId", authenticate, getDeliveryDriverByUserId);
 router.put("/:userId", authenticate, updateDeliveryDriverByUserId);
 // router.put("/approve/:userId", updateApprovalStatus);
-router.put("/:userId/isactive", updateIsActiveStatus);
+router.put("/:userId/isactive", authenticate, authorizeRoles("admin"), updateIsActiveStatus);
 router.delete(
   "/:userId",
   authenticate,

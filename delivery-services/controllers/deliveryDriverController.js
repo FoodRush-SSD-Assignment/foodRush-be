@@ -16,6 +16,10 @@ const getDeliveryDriverByUserId = async (req, res) => {
       return res.status(404).json({ error: "Driver not found" });
     }
 
+    if (req.user.role !== "admin" && req.user.userId !== userId) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
     res.json(driver);
   } catch (error) {
     res
@@ -27,6 +31,10 @@ const getDeliveryDriverByUserId = async (req, res) => {
 const updateDeliveryDriverByUserId = async (req, res) => {
   const { userId } = req.params;
   const updatedData = req.body;
+
+  if (req.user.role !== "admin" && req.user.userId !== userId) {
+    return res.status(403).json({ error: "Access denied" });
+  }
 
   try {
     const updatedDriver = await db1.findOneAndUpdate(
@@ -145,6 +153,10 @@ const updateVehicleDetails = async (req, res) => {
   const { userId } = req.params;
   const { vehicle, vehicleNumber, approvalStatus } = req.body;
 
+  if (req.user.userId !== userId) {
+    return res.status(403).json({ error: "Access denied" });
+  }
+
   if (!vehicle || !vehicleNumber || !approvalStatus) {
     return res.status(400).json({
       error: "vehicle, vehicleNumber, and approvalStatus are required",
@@ -177,6 +189,10 @@ const updateVehicleDetails = async (req, res) => {
 const updateCurrentLocation = async (req, res) => {
   const { userId } = req.params;
   const { lat, lng } = req.body;
+
+  if (req.user.userId !== userId) {
+    return res.status(403).json({ error: "Access denied" });
+  }
 
   if (lat === undefined || lng === undefined) {
     return res
