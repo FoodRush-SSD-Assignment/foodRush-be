@@ -344,11 +344,9 @@ exports.adminDeleteUser = async (req, res) => {
     await User.findByIdAndDelete(userId);
     logger.info("Admin deleted user", {
       adminId: req.user.userId,
-      adminName: `${req.user.firstname} ${req.user.lastname}`,
       deletedUserId: userId,
       ip: req.ip,
     });
-
     res.status(200).json({ message: "User deleted permanently by admin." });
   } catch (err) {
     res
