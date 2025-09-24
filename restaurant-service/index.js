@@ -6,8 +6,22 @@ const itemRoutes = require("./routes/itemRoutes");
 
 const app = express();
 const cors = require('cors');
+const helmet = require("helmet");
+
 
 app.use(express.json());
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
+    },
+  },
+}));
+app.use(helmet.frameguard({ action: "deny" }));
 
 app.use(cors({
   origin: 'http://localhost:5173',

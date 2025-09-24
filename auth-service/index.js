@@ -1,11 +1,25 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const helmet = require("helmet");
 const { connectUserDB, connectDeliveryDB } = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 
 dotenv.config();
 const app = express();
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
+    },
+  },
+}));
+app.use(helmet.frameguard({ action: "deny" }));
+
 
 app.use(cors());
 app.use(express.json());

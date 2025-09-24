@@ -8,11 +8,28 @@ const { setDriverDb } = require("./controllers/deliveryDriverController");
 const { setOrderDb } = require("./controllers/orderController"); // to inject db2
 
 const app = express();
+const helmet = require("helmet");
+
 const PORT = process.env.PORT || 5003;
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
+    },
+  },
+}));
+app.use(helmet.frameguard({ action: "deny" }));
+
 
 // Middleware
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(express.json());
+
+
 
 connectDBs().then(({ db1, db2 }) => {
   // You can still define models if needed
