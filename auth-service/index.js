@@ -1,3 +1,4 @@
+require("./passport"); // ensures strategy is registered
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
@@ -22,11 +23,16 @@ app.use(express.json());
   app.use("/api/auth", authRoutes);
 
   // Protected admin-only route example
-  const { authenticate, authorizeRoles } = require("./middleware/authMiddleware");
+  const {
+    authenticate,
+    authorizeRoles,
+  } = require("./middleware/authMiddleware");
   app.get("/api/admin", authenticate, authorizeRoles("admin"), (req, res) => {
     res.send("Welcome, Admin!");
   });
 
   const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => console.log(`✅ Auth service running on port ${PORT}`));
+  app.listen(PORT, () =>
+    console.log(`✅ Auth service running on port ${PORT}`)
+  );
 })();

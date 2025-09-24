@@ -4,6 +4,8 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const { connectDeliveryDB } = require("../config/db"); // import DB connection
 const DeliveryDriverModel = require("../models/Driver");
+const passport = require("../passport");
+
 // Utility to send email
 const sendVerificationEmail = async (to, code) => {
   const transporter = nodemailer.createTransport({
@@ -214,12 +216,17 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
 
     const token = jwt.sign(
-
-      { userId: user._id, role: user.role ,firstname: user.firstname ,lastname: user.lastname, email: user.email},
+      {
+        userId: user._id,
+        role: user.role,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        email: user.email,
+      },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
- 
+
     res.status(200).json({
       message: "Login successful",
       token,
@@ -252,7 +259,14 @@ exports.getAllUsers = async (req, res) => {
 //get users by id
 exports.getUserById = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select("-password");
+    let userId = req.params.id;
+
+    // If frontend uses "me", get userId from JWT
+    if (userId === "me") {
+      userId = req.user.userId; // req.user set by your authenticate middleware
+    }
+
+    const user = await User.findById(userId).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
 
     res.status(200).json(user);
@@ -353,5 +367,74 @@ exports.verifyPassword = async (req, res) => {
     res
       .status(500)
       .json({ message: "Error verifying password", error: error.message });
+  }
+};
+
+// Google OAuth login
+exports.googleAuth = passport.authenticate("google", {
+  scope: ["profile", "email"],
+});
+
+// Google OAuth callback
+exports.googleAuthCallback = (req, res, next) => {
+  passport.authenticate(
+    "google",
+    {
+      failureRedirect: "http://localhost:5173/login",
+      session: false,
+    },
+    (err, user) => {
+      if (err) {
+        console.error("Google auth error:", err);
+        // Send error message to frontend
+        const errorMsg = err.message || "google_auth_failed";
+        return res.redirect(
+          `http://localhost:5173/login?error=${encodeURIComponent(errorMsg)}`
+        );
+      }
+      if (!user) {
+        console.error("Google auth failed: No user returned from strategy");
+        return res.redirect(
+          "http://localhost:5173/login?error=google_auth_failed"
+        );
+      }
+      // Issue JWT and redirect
+      const token = jwt.sign(
+        {
+          userId: user._id,
+          role: user.role,
+          firstname: user.firstname,
+          lastname: user.lastname,
+          email: user.email,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "1d" }
+      );
+      // Redirect back to frontend with token
+      return res.redirect(
+        `http://localhost:5173/auth/google/success?token=${token}`
+      );
+    }
+  )(req, res, next);
+};
+
+// Google OAuth success (optional endpoint)
+exports.googleAuthSuccess = (req, res) => {
+  res.json({ message: "Google OAuth successful", token: req.query.token });
+};
+
+// Get current authenticated user
+exports.getCurrentUser = async (req, res) => {
+  try {
+    const userId = req.user.userId; // from JWT middleware
+    const user = await User.findById(userId).select("-password");
+    console.log("req.user in getCurrentUser:", req.user);
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.status(200).json(user);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Error fetching user", error: err.message });
   }
 };
