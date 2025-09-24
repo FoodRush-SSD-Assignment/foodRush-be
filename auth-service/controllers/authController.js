@@ -4,6 +4,8 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const { connectDeliveryDB } = require("../config/db"); // import DB connection
 const DeliveryDriverModel = require("../models/Driver");
+const { sanitizeInput } = require("../utils/sanitize");
+
 // Utility to send email
 const sendVerificationEmail = async (to, code) => {
   const transporter = nodemailer.createTransport({
@@ -36,31 +38,40 @@ exports.customerRegister = async (req, res) => {
   } = req.body;
 
   try {
-    const existingUser = await User.findOne({ email });
+    const cleanData = {
+      firstname: sanitizeInput(firstname),
+      lastname: sanitizeInput(lastname),
+      email: sanitizeInput(email, "email"),
+      password, // hash later
+      address: sanitizeInput(address),
+      mobileno: sanitizeInput(mobileno, "mobile"),
+      dateofbirth: sanitizeInput(dateofbirth, "date"),
+      nic: sanitizeInput(nic),
+    };
+
+    if (!cleanData.email) {
+      return res.status(400).json({ message: "Invalid email" });
+    }
+
+    const existingUser = await User.findOne({ email: cleanData.email });
     if (existingUser)
       return res.status(400).json({ message: "Email already in use" });
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(cleanData.password, 10);
     const verificationCode = Math.floor(
       100000 + Math.random() * 900000
     ).toString();
 
     const user = new User({
-      firstname,
-      lastname,
-      email,
+      ...cleanData,
       password: hashedPassword,
-      address,
-      mobileno,
-      dateofbirth,
-      nic,
       role: "customer",
       verificationCode,
       codeExpiresAt: Date.now() + 10 * 60 * 1000,
     });
 
     await user.save();
-    await sendVerificationEmail(email, verificationCode);
+    await sendVerificationEmail(cleanData.email, verificationCode);
 
     res.status(201).json({ message: "Verification code sent to email" });
   } catch (error) {
@@ -315,22 +326,30 @@ exports.updateUser = async (req, res) => {
   try {
     const userId = req.params.id;
 
-    // Allow only self or admin
     if (req.user.userId !== userId && req.user.role !== "admin") {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    const updated = await User.findByIdAndUpdate(userId, req.body, {
+    // Whitelist fields
+    const allowedFields = ["firstname", "lastname", "address", "mobileno", "dateofbirth", "nic"];
+    const updates = {};
+
+    allowedFields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        updates[field] = sanitizeInput(req.body[field]);
+      }
+    });
+
+    const updated = await User.findByIdAndUpdate(userId, updates, {
       new: true,
     }).select("-password");
 
     res.status(200).json(updated);
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Error updating user", error: err.message });
+    res.status(500).json({ message: "Error updating user", error: err.message });
   }
 };
+
 
 // Verify user's current password
 exports.verifyPassword = async (req, res) => {
