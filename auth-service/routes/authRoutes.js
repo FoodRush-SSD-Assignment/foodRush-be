@@ -1,4 +1,12 @@
 const express = require("express");
+const rateLimit = require('express-rate-limit');
+
+const loginLimiter = rateLimit({
+  windowMs:  15 * 60 * 1000, // 15 minutes
+  max: 5,
+  message: { error: "Too many login attempts. Please try again later." }
+});
+
 const {
   customerRegister,
   merchantRegister,
@@ -21,7 +29,7 @@ router.post("/customer-register", customerRegister);
 router.post("/merchant-register", merchantRegister);
 router.post("/verify-email", verifyEmailCode);
 router.post("/resend-code", resendVerificationCode);
-router.post("/login", login);
+router.post("/login", loginLimiter, login);
 router.get("/getuser/:id", authenticate, getUserById);
 router.put("/update/:id", authenticate, updateUser);
 router.put("/deactivate", authenticate, deactivateAccount);
