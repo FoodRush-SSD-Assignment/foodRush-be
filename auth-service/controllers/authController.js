@@ -4,6 +4,8 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const { connectDeliveryDB } = require("../config/db"); // import DB connection
 const DeliveryDriverModel = require("../models/Driver");
+const logger = require("../utils/logger");
+
 // Utility to send email
 const sendVerificationEmail = async (to, code) => {
   const transporter = nodemailer.createTransport({
@@ -37,9 +39,14 @@ exports.customerRegister = async (req, res) => {
 
   try {
     const existingUser = await User.findOne({ email });
-    if (existingUser)
+    if (existingUser) {
+      logger.warn("Registration attempt with existing email", {
+        email,
+        ip: req.ip,
+      });
       return res.status(400).json({ message: "Email already in use" });
-
+    }
+    logger.info("New user registered", { email, tempId: user._id, ip: req.ip });
     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationCode = Math.floor(
       100000 + Math.random() * 900000
@@ -127,14 +134,28 @@ exports.verifyEmailCode = async (req, res) => {
 
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found" });
-
+    if (!user) {
+      logger.warn("Verify-code attempt for non-existent user", {
+        email,
+        ip: req.ip,
+      });
+    }
     if (user.isVerified)
       return res.status(400).json({ message: "User already verified" });
 
-    if (user.verificationCode !== code)
-      return res.status(400).json({ message: "Invalid verification code" });
-
+    if (user.verificationCode !== code) {
+      logger.warn("Invalid verification code attempt", {
+        email,
+        ip: req.ip,
+        attemptedCode: code,
+      });
+    } else {
+      logger.info("Email verified successfully", {
+        userId: user._id,
+        email,
+        ip: req.ip,
+      });
+    }
     if (Date.now() > user.codeExpiresAt)
       return res.status(400).json({ message: "Verification code expired" });
 
@@ -197,7 +218,10 @@ exports.login = async (req, res) => {
 
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) {
+      logger.warn("Login failed - user not found", { email, ip: req.ip });
+      return res.status(404).json({ message: "User not found" });
+    }
     if (!user.isVerified)
       return res
         .status(403)
@@ -210,16 +234,32 @@ exports.login = async (req, res) => {
       });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
+    if (!isMatch) {
+      logger.warn("Login failed - invalid password", {
+        email,
+        ip: req.ip,
+        userId: user._id,
+      });
       return res.status(400).json({ message: "Invalid credentials" });
+    }
+    logger.info("Login success", {
+      userId: user._id,
+      email: user.email,
+      ip: req.ip,
+    });
 
     const token = jwt.sign(
-
-      { userId: user._id, role: user.role ,firstname: user.firstname ,lastname: user.lastname, email: user.email},
+      {
+        userId: user._id,
+        role: user.role,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        email: user.email,
+      },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
- 
+
     res.status(200).json({
       message: "Login successful",
       token,
@@ -302,6 +342,13 @@ exports.adminDeleteUser = async (req, res) => {
   try {
     const userId = req.params.id;
     await User.findByIdAndDelete(userId);
+    logger.info("Admin deleted user", {
+      adminId: req.user.userId,
+      adminName: `${req.user.firstname} ${req.user.lastname}`,
+      deletedUserId: userId,
+      ip: req.ip,
+    });
+
     res.status(200).json({ message: "User deleted permanently by admin." });
   } catch (err) {
     res

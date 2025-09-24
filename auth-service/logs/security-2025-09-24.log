@@ -1,0 +1,5 @@
+{"email":"ssdtest@gmail.com","ip":"::ffff:127.0.0.1","level":"warn","message":"Login failed - user not found","timestamp":"2025-09-24T11:42:49.538Z"}
+{"email":"senithudara0000@gmail.com","ip":"::ffff:127.0.0.1","level":"info","message":"Login success","timestamp":"2025-09-24T11:46:50.044Z","userId":"6808aa22a1595d243a5b0794"}
+{"attemptedCode":"000000","email":"test.duplicate@gmail.com","ip":"::ffff:127.0.0.1","level":"warn","message":"Invalid verification code attempt","timestamp":"2025-09-24T11:48:55.880Z"}
+{"adminId":"6808be34cf69412ab5a223d9","deletedUserId":"68d3d4481a816d379f811ce8","ip":"::ffff:127.0.0.1","level":"info","message":"Admin deleted user","timestamp":"2025-09-24T11:49:43.971Z"}
+{"adminId":"6808be34cf69412ab5a223d9","adminName":" ","deletedUserId":"68d31882af7faf49543b40af","ip":"::ffff:127.0.0.1","level":"info","message":"Admin deleted user","timestamp":"2025-09-24T11:52:45.247Z"}
